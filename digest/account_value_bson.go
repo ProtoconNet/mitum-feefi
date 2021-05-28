@@ -1,4 +1,4 @@
-package digest
+package digest // nolint: dupl, revive
 
 import (
 	"github.com/spikeekips/mitum/base"
@@ -10,19 +10,23 @@ func (va AccountValue) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(bsonenc.MergeBSONM(
 		bsonenc.NewHintedDoc(va.Hint()),
 		bson.M{
-			"ac":              va.ac,
-			"balance":         va.balance,
-			"height":          va.height,
-			"previous_height": va.previousHeight,
+			"ac":                      va.ac,
+			"balance":                 va.balance,
+			"owner":                   va.owner,
+			"isactivecontractaccount": va.isActiveContractAccount,
+			"height":                  va.height,
+			"previous_height":         va.previousHeight,
 		},
 	))
 }
 
 type AccountValueBSONUnpacker struct {
-	AC bson.Raw    `bson:"ac"`
-	BL bson.Raw    `bson:"balance"`
-	HT base.Height `bson:"height"`
-	PT base.Height `bson:"previous_height"`
+	AC bson.Raw            `bson:"ac"`
+	BL bson.Raw            `bson:"balance"`
+	OW base.AddressDecoder `bson:"owner"`
+	IA bool                `bson:"isactivecontractaccount"`
+	HT base.Height         `bson:"height"`
+	PT base.Height         `bson:"previous_height"`
 }
 
 func (va *AccountValue) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
@@ -31,5 +35,5 @@ func (va *AccountValue) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
 		return err
 	}
 
-	return va.unpack(enc, uva.AC, uva.BL, uva.HT, uva.PT)
+	return va.unpack(enc, uva.AC, uva.BL, uva.OW, uva.IA, uva.HT, uva.PT)
 }

@@ -40,7 +40,6 @@ func LoadAccountValue(decoder func(interface{}) error, encs *encoder.Encoders) (
 	if err := decoder(&b); err != nil {
 		return AccountValue{}, err
 	}
-
 	_, hinter, err := mongodbstorage.LoadDataFromDoc(b, encs)
 	if err != nil {
 		return AccountValue{}, err
@@ -64,6 +63,21 @@ func LoadBalance(decoder func(interface{}) error, encs *encoder.Encoders) (state
 		return nil, err
 	} else if st, ok := hinter.(state.State); !ok {
 		return nil, errors.Errorf("not currency.Big: %T", hinter)
+	} else {
+		return st, nil
+	}
+}
+
+func LoadContractAccountStatus(decoder func(interface{}) error, encs *encoder.Encoders) (state.State, error) {
+	var b bson.Raw
+	if err := decoder(&b); err != nil {
+		return nil, err
+	}
+
+	if _, hinter, err := mongodbstorage.LoadDataFromDoc(b, encs); err != nil {
+		return nil, err
+	} else if st, ok := hinter.(state.State); !ok {
+		return nil, errors.Errorf("not ContractAccountStatus : %T", hinter)
 	} else {
 		return st, nil
 	}

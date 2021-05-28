@@ -3,7 +3,8 @@ package cmds
 import (
 	"context"
 
-	"github.com/spikeekips/mitum-currency/digest"
+	"github.com/protoconNet/mitum-account-extension/digest"
+	currencycmds "github.com/spikeekips/mitum-currency/cmds"
 	mitumcmds "github.com/spikeekips/mitum/launch/cmds"
 	"github.com/spikeekips/mitum/launch/pm"
 )
@@ -21,7 +22,7 @@ func newCleanStorageCommand(dryrun bool) (CleanStorageCommand, error) {
 	}
 
 	hooks := []pm.Hook{
-		pm.NewHook(pm.HookPrefixPost, ProcessNameDigestDatabase,
+		pm.NewHook(pm.HookPrefixPost, currencycmds.ProcessNameDigestDatabase,
 			"set_digest_clean_storage", func(ctx context.Context) (context.Context, error) {
 				var st *digest.Database
 				if err := LoadDigestDatabaseContextValue(ctx, &st); err != nil {

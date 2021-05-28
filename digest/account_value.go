@@ -7,6 +7,7 @@ import (
 	"github.com/spikeekips/mitum/util/hint"
 
 	"github.com/spikeekips/mitum-currency/currency"
+	currencydigest "github.com/spikeekips/mitum-currency/digest"
 )
 
 var (
@@ -15,15 +16,17 @@ var (
 )
 
 type AccountValue struct {
-	ac             currency.Account
-	balance        []currency.Amount
-	height         base.Height
-	previousHeight base.Height
+	ac                      currency.Account
+	balance                 []currency.Amount
+	owner                   base.Address
+	isActiveContractAccount bool
+	height                  base.Height
+	previousHeight          base.Height
 }
 
 func NewAccountValue(st state.State) (AccountValue, error) {
 	var ac currency.Account
-	switch a, ok, err := IsAccountState(st); {
+	switch a, ok, err := currencydigest.IsAccountState(st); {
 	case err != nil:
 		return AccountValue{}, err
 	case !ok:
@@ -51,12 +54,18 @@ func (va AccountValue) Balance() []currency.Amount {
 	return va.balance
 }
 
+func (va AccountValue) Owner() base.Address {
+	return va.owner
+}
+
 func (va AccountValue) Height() base.Height {
 	return va.height
 }
 
 func (va AccountValue) SetHeight(height base.Height) AccountValue {
-	va.height = height
+	if int64(height) > int64(va.height) {
+		va.height = height
+	}
 
 	return va
 }
@@ -66,13 +75,22 @@ func (va AccountValue) PreviousHeight() base.Height {
 }
 
 func (va AccountValue) SetPreviousHeight(height base.Height) AccountValue {
-	va.previousHeight = height
+	if int64(height) > int64(va.previousHeight) {
+		va.previousHeight = height
+	}
 
 	return va
 }
 
 func (va AccountValue) SetBalance(balance []currency.Amount) AccountValue {
 	va.balance = balance
+
+	return va
+}
+
+func (va AccountValue) SetContractAccountStatus(owner base.Address, active bool) AccountValue {
+	va.owner = owner
+	va.isActiveContractAccount = active
 
 	return va
 }

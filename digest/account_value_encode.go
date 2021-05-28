@@ -1,4 +1,4 @@
-package digest
+package digest // nolint: dupl, revive
 
 import (
 	"github.com/spikeekips/mitum-currency/currency"
@@ -7,7 +7,9 @@ import (
 	"github.com/spikeekips/mitum/util/encoder"
 )
 
-func (va *AccountValue) unpack(enc encoder.Encoder, bac []byte, bl []byte, height, previousHeight base.Height) error {
+func (va *AccountValue) unpack(
+	enc encoder.Encoder, bac []byte, bl []byte, bow base.AddressDecoder, ia bool, height, previousHeight base.Height,
+) error {
 	if err := encoder.Decode(bac, enc, &va.ac); err != nil {
 		return err
 	}
@@ -27,6 +29,14 @@ func (va *AccountValue) unpack(enc encoder.Encoder, bac []byte, bl []byte, heigh
 	}
 
 	va.balance = balance
+
+	a, err := bow.Encode(enc)
+	if err != nil {
+		return err
+	}
+	va.owner = a
+
+	va.isActiveContractAccount = ia
 	va.height = height
 	va.previousHeight = previousHeight
 

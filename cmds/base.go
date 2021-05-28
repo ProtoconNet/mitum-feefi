@@ -9,10 +9,9 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/protoconNet/mitum-account-extension/extension"
 	"gopkg.in/yaml.v3"
 
-	"github.com/spikeekips/mitum-currency/currency"
-	"github.com/spikeekips/mitum-currency/digest"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/key"
 	"github.com/spikeekips/mitum/base/state"
@@ -28,6 +27,10 @@ import (
 	"github.com/spikeekips/mitum/util/hint"
 	"github.com/spikeekips/mitum/util/localtime"
 	"github.com/spikeekips/mitum/util/logging"
+
+	currencycmds "github.com/spikeekips/mitum-currency/cmds"
+	"github.com/spikeekips/mitum-currency/currency"
+	currencydigest "github.com/spikeekips/mitum-currency/digest"
 )
 
 const localhost = "localhost"
@@ -79,13 +82,13 @@ func HookLoadCurrencies(ctx context.Context) (context.Context, error) {
 	log.Log().Debug().Msg("loading currencies from mitum database")
 
 	var st *mongodbstorage.Database
-	if err := LoadDatabaseContextValue(ctx, &st); err != nil {
+	if err := currencycmds.LoadDatabaseContextValue(ctx, &st); err != nil {
 		return ctx, err
 	}
 
 	cp := currency.NewCurrencyPool()
 
-	if err := digest.LoadCurrenciesFromDatabase(st, base.NilHeight, func(sta state.State) (bool, error) {
+	if err := currencydigest.LoadCurrenciesFromDatabase(st, base.NilHeight, func(sta state.State) (bool, error) {
 		if err := cp.Set(sta); err != nil {
 			return false, err
 		}
@@ -96,7 +99,7 @@ func HookLoadCurrencies(ctx context.Context) (context.Context, error) {
 		return ctx, err
 	}
 
-	return context.WithValue(ctx, ContextValueCurrencyPool, cp), nil
+	return context.WithValue(ctx, currencycmds.ContextValueCurrencyPool, cp), nil
 }
 
 func HookInitializeProposalProcessor(ctx context.Context) (context.Context, error) {
@@ -127,7 +130,7 @@ func HookInitializeProposalProcessor(ctx context.Context) (context.Context, erro
 	}
 
 	var cp *currency.CurrencyPool
-	if err := LoadCurrencyPoolContextValue(ctx, &cp); err != nil {
+	if err := currencycmds.LoadCurrencyPoolContextValue(ctx, &cp); err != nil {
 		return ctx, err
 	}
 
@@ -146,13 +149,19 @@ func AttachProposalProcessor(
 	nodepool *network.Nodepool,
 	suffrage base.Suffrage,
 	cp *currency.CurrencyPool,
-) (*currency.OperationProcessor, error) {
-	opr := currency.NewOperationProcessor(cp)
+) (*extension.OperationProcessor, error) {
+	opr := extension.NewOperationProcessor(cp)
 	if _, err := opr.SetProcessor(currency.CreateAccountsHinter, currency.NewCreateAccountsProcessor(cp)); err != nil {
 		return nil, err
 	} else if _, err := opr.SetProcessor(currency.KeyUpdaterHinter, currency.NewKeyUpdaterProcessor(cp)); err != nil {
 		return nil, err
 	} else if _, err := opr.SetProcessor(currency.TransfersHinter, currency.NewTransfersProcessor(cp)); err != nil {
+		return nil, err
+	} else if _, err := opr.SetProcessor(extension.CreateContractAccountsHinter, extension.NewCreateContractAccountsProcessor(cp)); err != nil {
+		return nil, err
+	} else if _, err := opr.SetProcessor(extension.DeactivateHinter, extension.NewDeactivateProcessor(cp)); err != nil {
+		return nil, err
+	} else if _, err := opr.SetProcessor(extension.WithdrawsHinter, extension.NewWithdrawsProcessor(cp)); err != nil {
 		return nil, err
 	}
 
@@ -192,7 +201,7 @@ func AttachProposalProcessor(
 	return opr, nil
 }
 
-func InitializeProposalProcessor(ctx context.Context, opr *currency.OperationProcessor) (context.Context, error) {
+func InitializeProposalProcessor(ctx context.Context, opr *extension.OperationProcessor) (context.Context, error) {
 	var oprs *hint.Hintmap
 	if err := process.LoadOperationProcessorsContextValue(ctx, &oprs); err != nil {
 		if !errors.Is(err, util.ContextValueNotFoundError) {
@@ -213,6 +222,9 @@ func InitializeProposalProcessor(ctx context.Context, opr *currency.OperationPro
 		currency.CurrencyPolicyUpdaterHinter,
 		currency.CurrencyRegisterHinter,
 		currency.SuffrageInflationHinter,
+		extension.CreateContractAccountsHinter,
+		extension.DeactivateHinter,
+		extension.WithdrawsHinter,
 	} {
 		if err := oprs.Add(hinter, opr); err != nil {
 			return ctx, err
@@ -236,7 +248,7 @@ func (*BaseNodeCommand) hookLoadDigestConfig(ctx context.Context) (context.Conte
 	}
 
 	var m struct {
-		Digest *DigestDesign
+		Digest *currencycmds.DigestDesign
 	}
 
 	if err := yaml.Unmarshal(source, &m); err != nil {
@@ -249,7 +261,7 @@ func (*BaseNodeCommand) hookLoadDigestConfig(ctx context.Context) (context.Conte
 		ctx = i
 	}
 
-	return context.WithValue(ctx, ContextValueDigestDesign, *m.Digest), nil
+	return context.WithValue(ctx, currencycmds.ContextValueDigestDesign, *m.Digest), nil
 }
 
 func (cmd *BaseNodeCommand) hookValidateDigestConfig(ctx context.Context) (context.Context, error) {
@@ -258,8 +270,8 @@ func (cmd *BaseNodeCommand) hookValidateDigestConfig(ctx context.Context) (conte
 		return ctx, err
 	}
 
-	var design DigestDesign
-	if err := LoadDigestDesignContextValue(ctx, &design); err != nil {
+	var design currencycmds.DigestDesign
+	if err := currencycmds.LoadDigestDesignContextValue(ctx, &design); err != nil {
 		if errors.Is(err, util.ContextValueNotFoundError) {
 			return ctx, nil
 		}
@@ -281,7 +293,7 @@ func (cmd *BaseNodeCommand) hookValidateDigestConfig(ctx context.Context) (conte
 func (cmd *BaseNodeCommand) validateDigestConfigNetwork(
 	ctx context.Context,
 	conf config.LocalNode,
-	design DigestDesign,
+	design currencycmds.DigestDesign,
 ) (context.Context, error) {
 	if design.Network().ConnInfo() == nil {
 		return ctx, errors.Errorf("digest network url is missing")
@@ -295,7 +307,7 @@ func (cmd *BaseNodeCommand) validateDigestConfigNetwork(
 	}
 
 	if len(design.Network().Certs()) < 1 && design.Network().Bind().Scheme == "https" {
-		if h := design.Network().Bind().Hostname(); !strings.HasPrefix(h, "127.") && h != localhost {
+		if h := design.Network().Bind().Hostname(); !strings.HasPrefix(h, "127.") && h != "localhost" {
 			return ctx, errors.Errorf("missing certificates for https")
 		}
 
@@ -321,7 +333,7 @@ func (cmd *BaseNodeCommand) validateDigestConfigNetwork(
 
 func (*BaseNodeCommand) validateDigestConfigNetworkRateLimit(
 	ctx context.Context,
-	design DigestDesign,
+	design currencycmds.DigestDesign,
 ) (context.Context, error) {
 	rcc := config.NewRateLimitChecker(ctx, design.Network().RateLimit(), nil)
 
@@ -388,8 +400,8 @@ func hookVerboseConfig(ctx context.Context) (context.Context, error) {
 		return ctx, err
 	}
 
-	var dd DigestDesign
-	if err := LoadDigestDesignContextValue(ctx, &dd); err != nil {
+	var dd currencycmds.DigestDesign
+	if err := currencycmds.LoadDigestDesignContextValue(ctx, &dd); err != nil {
 		if !errors.Is(err, util.ContextValueNotFoundError) {
 			return ctx, err
 		}
@@ -410,11 +422,11 @@ func hookVerboseConfig(ctx context.Context) (context.Context, error) {
 }
 
 type OperationFlags struct {
-	Privatekey PrivatekeyFlag          `arg:"" name:"privatekey" help:"privatekey to sign operation" required:"true"`
-	Token      string                  `help:"token for operation" optional:""`
-	NetworkID  mitumcmds.NetworkIDFlag `name:"network-id" help:"network-id" required:"true"`
-	Memo       string                  `name:"memo" help:"memo"`
-	Pretty     bool                    `name:"pretty" help:"pretty format"`
+	Privatekey currencycmds.PrivatekeyFlag `arg:"" name:"privatekey" help:"privatekey to sign operation" required:"true"`
+	Token      string                      `help:"token for operation" optional:""`
+	NetworkID  mitumcmds.NetworkIDFlag     `name:"network-id" help:"network-id" required:"true"`
+	Memo       string                      `name:"memo" help:"memo"`
+	Pretty     bool                        `name:"pretty" help:"pretty format"`
 }
 
 func (op *OperationFlags) IsValid([]byte) error {

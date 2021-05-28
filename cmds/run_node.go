@@ -5,9 +5,8 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	"github.com/protoconNet/mitum-account-extension/digest"
 
-	"github.com/spikeekips/mitum-currency/currency"
-	"github.com/spikeekips/mitum-currency/digest"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/block"
 	"github.com/spikeekips/mitum/base/state"
@@ -23,6 +22,10 @@ import (
 	"github.com/spikeekips/mitum/util"
 	"github.com/spikeekips/mitum/util/logging"
 	"github.com/ulule/limiter/v3"
+
+	currencycmds "github.com/spikeekips/mitum-currency/cmds"
+	"github.com/spikeekips/mitum-currency/currency"
+	currencydigest "github.com/spikeekips/mitum-currency/digest"
 )
 
 var RunCommandHooks = func(cmd *RunCommand) []pm.Hook {
@@ -33,14 +36,14 @@ var RunCommandHooks = func(cmd *RunCommand) []pm.Hook {
 			"set_currency_network_handlers", cmd.hookSetNetworkHandlers).SetOverride(true),
 		pm.NewHook(pm.HookPrefixPre, process.ProcessNameProposalProcessor,
 			"initialize_proposal_processor", HookInitializeProposalProcessor).SetOverride(true),
-		pm.NewHook(pm.HookPrefixPost, ProcessNameDigestAPI,
+		pm.NewHook(pm.HookPrefixPost, currencycmds.ProcessNameDigestAPI,
 			"set_digest_api_handlers", cmd.hookDigestAPIHandlers).SetOverride(true),
-		pm.NewHook(pm.HookPrefixPost, ProcessNameDigester,
+		pm.NewHook(pm.HookPrefixPost, currencycmds.ProcessNameDigester,
 			"set_state_handler", cmd.hookSetStateHandler).SetOverride(true),
-		pm.NewHook(pm.HookPrefixPost, ProcessNameDigester,
-			HookNameDigesterFollowUp, HookDigesterFollowUp).SetOverride(true),
-		pm.NewHook(pm.HookPrefixPre, ProcessNameDigestAPI,
-			HookNameSetLocalChannel, HookSetLocalChannel).SetOverride(true),
+		pm.NewHook(pm.HookPrefixPost, currencycmds.ProcessNameDigester,
+			currencycmds.HookNameDigesterFollowUp, HookDigesterFollowUp).SetOverride(true),
+		pm.NewHook(pm.HookPrefixPre, currencycmds.ProcessNameDigestAPI,
+			currencycmds.HookNameSetLocalChannel, currencycmds.HookSetLocalChannel).SetOverride(true),
 	}
 }
 
@@ -98,12 +101,12 @@ func (cmd *RunCommand) hookSetStateHandler(ctx context.Context) (context.Context
 	}
 
 	var st *mongodbstorage.Database
-	if err := LoadDatabaseContextValue(ctx, &st); err != nil {
+	if err := currencycmds.LoadDatabaseContextValue(ctx, &st); err != nil {
 		return ctx, err
 	}
 
 	var cp *currency.CurrencyPool
-	if err := LoadCurrencyPoolContextValue(ctx, &cp); err != nil {
+	if err := currencycmds.LoadCurrencyPoolContextValue(ctx, &cp); err != nil {
 		return ctx, err
 	}
 
@@ -138,7 +141,7 @@ func (cmd *RunCommand) whenBlockSaved(
 			}()
 		}
 
-		if err := digest.LoadCurrenciesFromDatabase(st, blocks[0].Height(), func(sta state.State) (bool, error) {
+		if err := currencydigest.LoadCurrenciesFromDatabase(st, blocks[0].Height(), func(sta state.State) (bool, error) {
 			if err := cp.Set(sta); err != nil {
 				return false, err
 			}
@@ -159,7 +162,7 @@ func (*RunCommand) hookSetNetworkHandlers(ctx context.Context) (context.Context,
 		return ctx, err
 	}
 
-	nt.SetNodeInfoHandler(NodeInfoHandler(
+	nt.SetNodeInfoHandler(currencycmds.NodeInfoHandler(
 		nt.NodeInfoHandler(),
 	))
 
@@ -172,8 +175,8 @@ func (cmd *RunCommand) hookDigestAPIHandlers(ctx context.Context) (context.Conte
 		return nil, err
 	}
 
-	var design DigestDesign
-	if err := LoadDigestDesignContextValue(ctx, &design); err != nil {
+	var design currencycmds.DigestDesign
+	if err := currencycmds.LoadDigestDesignContextValue(ctx, &design); err != nil {
 		if errors.Is(err, util.ContextValueNotFoundError) {
 			return ctx, nil
 		}
@@ -196,16 +199,16 @@ func (cmd *RunCommand) hookDigestAPIHandlers(ctx context.Context) (context.Conte
 		return ctx, err
 	}
 
-	var dnt *digest.HTTP2Server
-	if err := LoadDigestNetworkContextValue(ctx, &dnt); err != nil {
+	var dnt *currencydigest.HTTP2Server
+	if err := currencycmds.LoadDigestNetworkContextValue(ctx, &dnt); err != nil {
 		return ctx, err
 	}
-	dnt.SetRouter(handlers.Router())
 
+	dnt.SetRouter(handlers.Router())
 	return ctx, nil
 }
 
-func (cmd *RunCommand) loadCache(_ context.Context, design DigestDesign) (digest.Cache, error) {
+func (cmd *RunCommand) loadCache(_ context.Context, design currencycmds.DigestDesign) (currencydigest.Cache, error) {
 	c, err := digest.NewCacheFromURI(design.Cache().String())
 	if err != nil {
 		cmd.Log().Error().Err(err).Str("cache", design.Cache().String()).Msg("failed to connect cache server")
@@ -219,8 +222,8 @@ func (cmd *RunCommand) loadCache(_ context.Context, design DigestDesign) (digest
 func (cmd *RunCommand) setDigestHandlers(
 	ctx context.Context,
 	conf config.LocalNode,
-	design DigestDesign,
-	cache digest.Cache,
+	design currencycmds.DigestDesign,
+	cache currencydigest.Cache,
 ) (*digest.Handlers, error) {
 	var nt network.Server
 	if err := process.LoadNetworkContextValue(ctx, &nt); err != nil {
@@ -233,7 +236,7 @@ func (cmd *RunCommand) setDigestHandlers(
 	}
 
 	var cp *currency.CurrencyPool
-	if err := LoadCurrencyPoolContextValue(ctx, &cp); err != nil {
+	if err := currencycmds.LoadCurrencyPoolContextValue(ctx, &cp); err != nil {
 		return nil, err
 	}
 
@@ -338,29 +341,27 @@ func (cmd *RunCommand) setDigestSendHandler(
 		return nil, err
 	}
 
-	handlers = handlers.SetSend(
-		NewSendHandler(conf.Privatekey(), conf.NetworkID(), func() ([]network.Channel, error) { // nolint:contextcheck
-			remotes := suffrage.Nodes()
+	handlers = handlers.SetSend(currencycmds.NewSendHandler(conf.Privatekey(), conf.NetworkID(), func() ([]network.Channel, error) {
+		remotes := suffrage.Nodes()
 
-			var chs []network.Channel
-			for i := range remotes {
-				s := remotes[i]
-				_, ch, found := nodepool.Node(s)
-				switch {
-				case !found:
-					return nil, errors.Errorf("suffrage node, %q not found in nodepool", s)
-				case ch == nil:
-					continue
-				default:
-					chs = append(chs, ch)
-				}
+		var chs []network.Channel
+		for i := range remotes {
+			s := remotes[i]
+			_, ch, found := nodepool.Node(s)
+			switch {
+			case !found:
+				return nil, errors.Errorf("suffrage node, %q not found in nodepool", s)
+			case ch == nil:
+				continue
+			default:
+				chs = append(chs, ch)
 			}
+		}
 
-			return chs, nil
-		},
-			conf.Network().ConnInfo(),
-		),
-	)
+		return chs, nil
+	},
+		conf.Network().ConnInfo(),
+	))
 
 	cmd.Log().Debug().Msg("send handler attached")
 

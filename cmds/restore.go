@@ -4,7 +4,8 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	"github.com/spikeekips/mitum-currency/digest"
+	"github.com/protoconNet/mitum-account-extension/digest"
+	currencycmds "github.com/spikeekips/mitum-currency/cmds"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/block"
 	mitumcmds "github.com/spikeekips/mitum/launch/cmds"
@@ -26,7 +27,7 @@ var restoreCommandHooks = func(cmd *restoreCommand) []pm.Hook {
 		pm.NewHook(pm.HookPrefixPost, process.ProcessNameConfig,
 			process.HookNameConfigGenesisOperations, process.HookGenesisOperationFunc(genesisOperationHandlers)).
 			SetOverride(true),
-		pm.NewHook(pm.HookPrefixPost, ProcessNameDigestDatabase,
+		pm.NewHook(pm.HookPrefixPost, currencycmds.ProcessNameDigestDatabase,
 			"set_digest_when_block_saved", func(ctx context.Context) (context.Context, error) {
 				var st *digest.Database
 				if err := LoadDigestDatabaseContextValue(ctx, &st); err != nil {

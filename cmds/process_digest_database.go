@@ -4,24 +4,22 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"github.com/protoconNet/mitum-account-extension/digest"
 
+	currencycmds "github.com/spikeekips/mitum-currency/cmds"
 	"github.com/spikeekips/mitum/launch/config"
 	"github.com/spikeekips/mitum/launch/pm"
 	"github.com/spikeekips/mitum/launch/process"
 	mongodbstorage "github.com/spikeekips/mitum/storage/mongodb"
 	"github.com/spikeekips/mitum/util"
 	"github.com/spikeekips/mitum/util/logging"
-
-	"github.com/spikeekips/mitum-currency/digest"
 )
-
-const ProcessNameDigestDatabase = "digest_database"
 
 var ProcessorDigestDatabase pm.Process
 
 func init() {
 	if i, err := pm.NewProcess(
-		ProcessNameDigestDatabase,
+		currencycmds.ProcessNameDigestDatabase,
 		[]string{process.ProcessNameBlockdata},
 		ProcessDigestDatabase,
 	); err != nil {
@@ -32,8 +30,8 @@ func init() {
 }
 
 func ProcessDigestDatabase(ctx context.Context) (context.Context, error) {
-	var design DigestDesign
-	if err := LoadDigestDesignContextValue(ctx, &design); err != nil {
+	var design currencycmds.DigestDesign
+	if err := currencycmds.LoadDigestDesignContextValue(ctx, &design); err != nil {
 		if errors.Is(err, util.ContextValueNotFoundError) {
 			return ctx, nil
 		}
@@ -42,7 +40,7 @@ func ProcessDigestDatabase(ctx context.Context) (context.Context, error) {
 	}
 
 	var mst *mongodbstorage.Database
-	if err := LoadDatabaseContextValue(ctx, &mst); err != nil {
+	if err := currencycmds.LoadDatabaseContextValue(ctx, &mst); err != nil {
 		return ctx, err
 	}
 
@@ -57,7 +55,7 @@ func ProcessDigestDatabase(ctx context.Context) (context.Context, error) {
 
 	_ = st.SetLogging(log)
 
-	return context.WithValue(ctx, ContextValueDigestDatabase, st), nil
+	return context.WithValue(ctx, currencycmds.ContextValueDigestDatabase, st), nil
 }
 
 func loadDigestDatabase(st *mongodbstorage.Database, readonly bool) (*digest.Database, error) {

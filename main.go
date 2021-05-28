@@ -5,7 +5,8 @@ import (
 	"os"
 
 	"github.com/alecthomas/kong"
-	"github.com/spikeekips/mitum-currency/cmds"
+	"github.com/protoconNet/mitum-account-extension/cmds"
+	currencycmds "github.com/spikeekips/mitum-currency/cmds"
 	mitumcmds "github.com/spikeekips/mitum/launch/cmds"
 	"github.com/spikeekips/mitum/util"
 )
@@ -15,8 +16,8 @@ var (
 	options = []kong.Option{
 		kong.Name("mitum-currency"),
 		kong.Description("mitum-currency tool"),
-		cmds.KeyAddressVars,
-		cmds.SendVars,
+		currencycmds.KeyAddressVars,
+		currencycmds.SendVars,
 		mitumcmds.BlockDownloadVars,
 	}
 )
@@ -24,10 +25,10 @@ var (
 type mainflags struct {
 	Version    VersionCommand              `cmd:"" help:"version"`
 	Node       cmds.NodeCommand            `cmd:"" help:"node"`
-	Key        cmds.KeyCommand             `cmd:"" help:"key"`
+	Key        currencycmds.KeyCommand     `cmd:"" help:"key"`
 	Seal       cmds.SealCommand            `cmd:"" help:"seal"`
 	Storage    cmds.StorageCommand         `cmd:"" help:"storage"`
-	Deploy     cmds.DeployCommand          `cmd:"" help:"deploy"`
+	Deploy     currencycmds.DeployCommand  `cmd:"" help:"deploy"`
 	QuicClient mitumcmds.QuicClientCommand `cmd:"" help:"quic-client"`
 }
 
@@ -48,10 +49,10 @@ func main() {
 
 	flags := mainflags{
 		Node:       nodeCommand,
-		Key:        cmds.NewKeyCommand(),
+		Key:        currencycmds.NewKeyCommand(),
 		Seal:       cmds.NewSealCommand(),
 		Storage:    storagecommand,
-		Deploy:     cmds.NewDeployCommand(),
+		Deploy:     currencycmds.NewDeployCommand(),
 		QuicClient: mitumcmds.NewQuicClientCommand(),
 	}
 

@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/protoconNet/mitum-account-extension/extension"
 	"github.com/rs/zerolog"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
@@ -31,12 +32,14 @@ var maxLimit int64 = 50
 
 var (
 	defaultColNameAccount   = "digest_ac"
+	defaultColNameExtension = "digest_et"
 	defaultColNameBalance   = "digest_bl"
 	defaultColNameOperation = "digest_op"
 )
 
 var AllCollections = []string{
 	defaultColNameAccount,
+	defaultColNameExtension,
 	defaultColNameBalance,
 	defaultColNameOperation,
 }
@@ -183,11 +186,7 @@ func (st *Database) Clean() error {
 }
 
 func (st *Database) clean(ctx context.Context) error {
-	for _, col := range []string{
-		defaultColNameAccount,
-		defaultColNameBalance,
-		defaultColNameOperation,
-	} {
+	for _, col := range AllCollections {
 		if err := st.database.Client().Collection(col).Drop(ctx); err != nil {
 			return storage.MergeStorageError(err)
 		}
@@ -223,11 +222,7 @@ func (st *Database) cleanByHeight(ctx context.Context, height base.Height) error
 	opts := options.BulkWrite().SetOrdered(true)
 	removeByHeight := mongo.NewDeleteManyModel().SetFilter(bson.M{"height": bson.M{"$gte": height}})
 
-	for _, col := range []string{
-		defaultColNameAccount,
-		defaultColNameBalance,
-		defaultColNameOperation,
-	} {
+	for _, col := range AllCollections {
 		res, err := st.database.Client().Collection(col).BulkWrite(
 			ctx,
 			[]mongo.WriteModel{removeByHeight},
@@ -455,12 +450,22 @@ func (st *Database) Account(a base.Address) (AccountValue, bool /* exists */, er
 		return rs, false, err
 	}
 
-	// NOTE load balance
+	// load balance
 	switch am, lastHeight, previousHeight, err := st.balance(a); {
 	case err != nil:
 		return rs, false, err
 	default:
 		rs = rs.SetBalance(am).
+			SetHeight(lastHeight).
+			SetPreviousHeight(previousHeight)
+	}
+
+	// load contractaccountstatus
+	switch owner, isActive, lastHeight, previousHeight, err := st.ContractAccountStatus(a); {
+	case err != nil:
+		return rs, false, err
+	default:
+		rs = rs.SetContractAccountStatus(owner, isActive).
 			SetHeight(lastHeight).
 			SetPreviousHeight(previousHeight)
 	}
@@ -841,6 +846,10 @@ func parseOffsetByString(s string) (base.Height, string, error) {
 	return h, b, nil
 }
 
+func buildOffsetHeight(height base.Height) string {
+	return fmt.Sprintf("%d", height)
+}
+
 func buildOffsetByString(height base.Height, s string) string {
 	return fmt.Sprintf("%d,%s", height, s)
 }
@@ -890,4 +899,52 @@ func loadBriefAccountDoc(decoder func(interface{}) error) (briefAccountDoc, erro
 	}
 
 	return a, nil
+}
+
+func parseOffsetHeight(s string) (base.Height, error) {
+	if len(s) < 1 {
+		return base.NilHeight, errors.Errorf("invalid offset, %q", s)
+	} else if h, err := base.NewHeightFromString(s); err != nil {
+		return base.NilHeight, errors.Wrap(err, "invalid height of offset")
+	} else {
+		return h, nil
+	}
+}
+
+// ContractAccountStatus return contract account owner by address
+func (st *Database) ContractAccountStatus(a base.Address) (base.Address, bool, base.Height, base.Height, error) {
+	var lastHeight, previousHeight = base.NilHeight, base.NilHeight
+	filter := util.NewBSONFilter("address", a.String())
+	q := filter.D()
+	var sta state.State
+	if err := st.database.Client().GetByFilter(
+		defaultColNameExtension,
+		q,
+		func(res *mongo.SingleResult) error {
+			i, err := LoadContractAccountStatus(res.Decode, st.database.Encoders())
+			if err != nil {
+				return err
+			}
+			sta = i
+
+			return nil
+		},
+		options.FindOne().SetSort(util.NewBSONFilter("height", -1).D()),
+	); err != nil {
+		if errors.Is(err, util.NotFoundError) {
+			return nil, false, lastHeight, previousHeight, nil
+		}
+	}
+
+	v, err := extension.StateContractAccountStatusValue(sta)
+	if err != nil {
+		return nil, false, lastHeight, previousHeight, err
+	}
+
+	if h := sta.Height(); h > lastHeight {
+		lastHeight = h
+		previousHeight = sta.PreviousHeight()
+	}
+
+	return v.Owner(), v.IsActive(), lastHeight, previousHeight, nil
 }

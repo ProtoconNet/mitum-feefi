@@ -2,6 +2,8 @@ package digest
 
 import (
 	"github.com/pkg/errors"
+	"github.com/protoconNet/mitum-account-extension/extension"
+
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/state"
@@ -65,7 +67,7 @@ type BalanceDoc struct {
 func NewBalanceDoc(st state.State, enc encoder.Encoder) (BalanceDoc, error) {
 	am, err := currency.StateBalanceValue(st)
 	if err != nil {
-		return BalanceDoc{}, errors.Wrap(err, "BalanceDoc needs Amount state")
+		return BalanceDoc{}, errors.Wrap(err, "balanceDoc needs Amount state")
 	}
 
 	b, err := mongodbstorage.NewBaseDoc(nil, st, enc)
@@ -89,6 +91,35 @@ func (doc BalanceDoc) MarshalBSON() ([]byte, error) {
 	address := doc.st.Key()[:len(doc.st.Key())-len(currency.StateKeyBalanceSuffix)-len(doc.am.Currency())-1]
 	m["address"] = address
 	m["currency"] = doc.am.Currency().String()
+	m["height"] = doc.st.Height()
+
+	return bsonenc.Marshal(m)
+}
+
+type ContractAccountStatusDoc struct {
+	mongodbstorage.BaseDoc
+	st state.State
+}
+
+// NewContractAccountStatusDoc gets the State of contract account status
+func NewContractAccountStatusDoc(st state.State, enc encoder.Encoder) (ContractAccountStatusDoc, error) {
+	b, err := mongodbstorage.NewBaseDoc(nil, st, enc)
+	if err != nil {
+		return ContractAccountStatusDoc{}, err
+	}
+	return ContractAccountStatusDoc{
+		BaseDoc: b,
+		st:      st,
+	}, nil
+}
+
+func (doc ContractAccountStatusDoc) MarshalBSON() ([]byte, error) {
+	m, err := doc.BaseDoc.M()
+	if err != nil {
+		return nil, err
+	}
+	address := doc.st.Key()[:len(doc.st.Key())-len(extension.StateKeyContractAccountStatusSuffix)]
+	m["address"] = address
 	m["height"] = doc.st.Height()
 
 	return bsonenc.Marshal(m)

@@ -4,8 +4,9 @@ import (
 	"github.com/spikeekips/mitum/launch"
 	"github.com/spikeekips/mitum/util/hint"
 
+	"github.com/protoconNet/mitum-account-extension/digest"
+	"github.com/protoconNet/mitum-account-extension/extension"
 	"github.com/spikeekips/mitum-currency/currency"
-	"github.com/spikeekips/mitum-currency/digest"
 )
 
 var (
@@ -44,6 +45,18 @@ var types = []hint.Type{
 	currency.TransfersItemMultiAmountsType,
 	currency.TransfersItemSingleAmountType,
 	currency.TransfersType,
+	extension.ContractAccountKeysType,
+	extension.ContractAccountStatusType,
+	extension.CreateContractAccountsFactType,
+	extension.CreateContractAccountsType,
+	extension.CreateContractAccountsItemMultiAmountsType,
+	extension.CreateContractAccountsItemSingleAmountType,
+	extension.DeactivateFactType,
+	extension.DeactivateType,
+	extension.WithdrawsFactType,
+	extension.WithdrawsType,
+	extension.WithdrawsItemMultiAmountsType,
+	extension.WithdrawsItemSingleAmountType,
 	digest.ProblemType,
 	digest.NodeInfoType,
 	digest.BaseHalType,
@@ -82,6 +95,18 @@ var hinters = []hint.Hinter{
 	currency.TransfersItemMultiAmountsHinter,
 	currency.TransfersItemSingleAmountHinter,
 	currency.TransfersHinter,
+	extension.ContractAccountKeysHinter,
+	extension.ContractAccountStatusHinter,
+	extension.CreateContractAccountsFactHinter,
+	extension.CreateContractAccountsHinter,
+	extension.CreateContractAccountsItemMultiAmountsHinter,
+	extension.CreateContractAccountsItemSingleAmountHinter,
+	extension.DeactivateFactHinter,
+	extension.DeactivateHinter,
+	extension.WithdrawsFactHinter,
+	extension.WithdrawsHinter,
+	extension.WithdrawsItemMultiAmountsHinter,
+	extension.WithdrawsItemSingleAmountHinter,
 	digest.AccountValue{},
 	digest.BaseHal{},
 	digest.NodeInfo{},

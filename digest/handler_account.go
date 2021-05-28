@@ -32,7 +32,6 @@ func (hd *Handlers) handleAccount(w http.ResponseWriter, r *http.Request) {
 	} else {
 		address = a
 	}
-
 	if v, err, shared := hd.rg.Do(cachekey, func() (interface{}, error) {
 		return hd.handleAccountInGroup(address)
 	}); err != nil {
@@ -41,11 +40,9 @@ func (hd *Handlers) handleAccount(w http.ResponseWriter, r *http.Request) {
 		} else {
 			hd.Log().Error().Err(err).Str("address", address.String()).Msg("failed to get account")
 		}
-
 		HTTP2HandleError(w, err)
 	} else {
 		HTTP2WriteHalBytes(hd.enc, w, v.([]byte), http.StatusOK)
-
 		if !shared {
 			HTTP2WriteCache(w, cachekey, time.Second*2)
 		}
@@ -63,6 +60,7 @@ func (hd *Handlers) handleAccountInGroup(address base.Address) (interface{}, err
 		if err != nil {
 			return nil, err
 		}
+
 		return hd.enc.Marshal(hal)
 	}
 }
@@ -76,7 +74,7 @@ func (hd *Handlers) buildAccountHal(va AccountValue) (Hal, error) {
 
 	var hal Hal
 	hal = NewBaseHal(va, NewHalLink(h, nil))
-
+	hal = hal.AddLink("currency:{currencyid}", NewHalLink(HandlerPathCurrency, nil).SetTemplated())
 	h, err = hd.combineURL(HandlerPathAccountOperations, "address", hinted)
 	if err != nil {
 		return nil, err
@@ -85,12 +83,6 @@ func (hd *Handlers) buildAccountHal(va AccountValue) (Hal, error) {
 		AddLink("operations", NewHalLink(h, nil)).
 		AddLink("operations:{offset}", NewHalLink(h+"?offset={offset}", nil).SetTemplated()).
 		AddLink("operations:{offset,reverse}", NewHalLink(h+"?offset={offset}&reverse=1", nil).SetTemplated())
-
-	h, err = hd.combineURL(HandlerPathBlockByHeight, "height", va.Height().String())
-	if err != nil {
-		return nil, err
-	}
-	hal = hal.AddLink("block", NewHalLink(h, nil))
 
 	h, err = hd.combineURL(HandlerPathBlockByHeight, "height", va.Height().String())
 	if err != nil {
@@ -122,6 +114,7 @@ func (hd *Handlers) handleAccountOperations(w http.ResponseWriter, r *http.Reque
 		address = a
 	}
 
+	limit := parseLimitQuery(r.URL.Query().Get("limit"))
 	offset := parseOffsetQuery(r.URL.Query().Get("offset"))
 	reverse := parseBoolQuery(r.URL.Query().Get("reverse"))
 
@@ -131,7 +124,7 @@ func (hd *Handlers) handleAccountOperations(w http.ResponseWriter, r *http.Reque
 	}
 
 	if v, err, shared := hd.rg.Do(cachekey, func() (interface{}, error) {
-		i, filled, err := hd.handleAccountOperationsInGroup(address, offset, reverse)
+		i, filled, err := hd.handleAccountOperationsInGroup(address, offset, limit, reverse)
 
 		return []interface{}{i, filled}, err
 	}); err != nil {
@@ -161,9 +154,15 @@ func (hd *Handlers) handleAccountOperations(w http.ResponseWriter, r *http.Reque
 func (hd *Handlers) handleAccountOperationsInGroup(
 	address base.Address,
 	offset string,
+	l int64,
 	reverse bool,
 ) ([]byte, bool, error) {
-	limit := hd.itemsLimiter("account-operations")
+	var limit int64
+	if l < 0 {
+		limit = hd.itemsLimiter("account-operations")
+	} else {
+		limit = l
+	}
 	var vas []Hal
 	if err := hd.database.OperationsByAddress(
 		address, true, reverse, offset, limit,
@@ -251,7 +250,7 @@ func (hd *Handlers) handleAccounts(w http.ResponseWriter, r *http.Request) {
 	var offsetAddress string
 	switch i, h, a, err := hd.parseAccountsQueries(r.URL.Query().Get("publickey"), offset); {
 	case err != nil:
-		HTTP2ProblemWithError(w, fmt.Errorf("invalue accounts query: %w", err), http.StatusBadRequest)
+		HTTP2ProblemWithError(w, fmt.Errorf("invalid accounts query: %w", err), http.StatusBadRequest)
 
 		return
 	default:

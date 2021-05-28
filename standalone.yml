@@ -2,13 +2,13 @@ address: mc-nodesas
 privatekey: KxaTHDAQnmFeWWik5MqWXBYkhvp5EpWbsZzXeHDdTDb5NE1dVw8wmpr
 storage:
     database:
-        uri: mongodb://127.0.0.1:27017/mc
+        uri: mongodb://127.0.0.1:27017/mbd
     blockdata:
-        path: ./mc-blockfs
-network-id: mc; Tue 08 Dec 2020 07:22:18 AM KST
+        path: ./blockdata
+network-id: mitum
 network:
-    bind: https://0.0.0.0:54321
-    url: https://127.0.0.1:54321
+    bind: https://0.0.0.0:54330
+    url: https://127.0.0.1:54330
 
 genesis-operations:
     - type: genesis-currencies
@@ -40,11 +40,11 @@ policy:
 
 suffrage:
     nodes:
-        - mc-node0sas
+        - mc-nodesas
 
 nodes:
 
 digest:
     network:
-        bind: https://localhost:54322
-        url: https://localhost:54322
+        bind: http://localhost:54320
+        url: http://127.0.0.1:54320

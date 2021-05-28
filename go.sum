@@ -317,8 +317,11 @@ github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPx
 github.com/sirupsen/logrus v1.4.2/go.mod h1:tLMulIdttU9McNUspp0xgXVQah82FyeX6MwdIuYE2rE=
 github.com/sourcegraph/annotate v0.0.0-20160123013949-f4cad6c6324d/go.mod h1:UdhH50NIW0fCiwBSr0co2m7BnFLdv4fQTgdqdJTHFeE=
 github.com/sourcegraph/syntaxhighlight v0.0.0-20170531221838-bd320f5d308e/go.mod h1:HuIsMU8RRBOtsCgI77wP899iHVBQpCmg4ErYMZB+2IA=
+github.com/spikeekips/mitum v0.0.0-20220104094441-4d02cb4a112a/go.mod h1:pyP+AHGWNX6CaW7LL3DCTXcfz6KXrNZRKDVWaaa/+aY=
 github.com/spikeekips/mitum v0.0.0-20220408034603-1a0b360e6244 h1:Z/kdojpG7+g9EV7hYjZf1+LLDcRFeTLU0UNfn63+nQs=
 github.com/spikeekips/mitum v0.0.0-20220408034603-1a0b360e6244/go.mod h1:pyP+AHGWNX6CaW7LL3DCTXcfz6KXrNZRKDVWaaa/+aY=
+github.com/spikeekips/mitum-currency v0.0.0-20220104094610-7b9f71974b4f h1:gufuVLWmOx592kUisqDiUiXGG9hxgkLHEDduBpuE7Es=
+github.com/spikeekips/mitum-currency v0.0.0-20220104094610-7b9f71974b4f/go.mod h1:EZe91ssD/8pHoNV69es0in62PQOIcCV3UzmnOmboykA=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.1.1/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=

@@ -7,6 +7,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/pkg/errors"
+	currencycmds "github.com/spikeekips/mitum-currency/cmds"
 	"github.com/spikeekips/mitum/base/seal"
 	mitumcmds "github.com/spikeekips/mitum/launch/cmds"
 	"github.com/spikeekips/mitum/launch/process"
@@ -20,15 +21,15 @@ var SendVars = kong.Vars{
 
 type SendCommand struct {
 	*BaseCommand
-	URL        []*url.URL              `name:"node" help:"remote mitum url (default: ${node_url})" default:"${node_url}"` // nolint
-	NetworkID  mitumcmds.NetworkIDFlag `name:"network-id" help:"network-id" `
-	Seal       mitumcmds.FileLoad      `help:"seal" optional:""`
-	DryRun     bool                    `help:"dry-run, print operation" optional:"" default:"false"`
-	Pretty     bool                    `name:"pretty" help:"pretty format"`
-	Privatekey PrivatekeyFlag          `arg:"" name:"privatekey" help:"privatekey for sign"`
-	Timeout    time.Duration           `name:"timeout" help:"timeout; default: 5s"`
-	TLSInscure bool                    `name:"tls-insecure" help:"allow inseucre TLS connection; default is false"`
-	From       string                  `name:"from" help:"from conninfo; default is empty"`
+	URL        []*url.URL                  `name:"node" help:"remote mitum url (default: ${node_url})" default:"${node_url}"` // nolint
+	NetworkID  mitumcmds.NetworkIDFlag     `name:"network-id" help:"network-id" `
+	Seal       mitumcmds.FileLoad          `help:"seal" optional:""`
+	DryRun     bool                        `help:"dry-run, print operation" optional:"" default:"false"`
+	Pretty     bool                        `name:"pretty" help:"pretty format"`
+	Privatekey currencycmds.PrivatekeyFlag `arg:"" name:"privatekey" help:"privatekey for sign"`
+	Timeout    time.Duration               `name:"timeout" help:"timeout; default: 5s"`
+	TLSInscure bool                        `name:"tls-insecure" help:"allow inseucre TLS connection; default is false"`
+	From       string                      `name:"from" help:"from conninfo; default is empty"`
 }
 
 func NewSendCommand() SendCommand {
@@ -54,7 +55,7 @@ func (cmd *SendCommand) Run(version util.Version) error {
 	cmd.Log().Debug().Stringer("seal", sl.Hash()).Msg("seal loaded")
 
 	if !cmd.Privatekey.Empty() {
-		s, err := SignSeal(sl, cmd.Privatekey, cmd.NetworkID.NetworkID())
+		s, err := currencycmds.SignSeal(sl, cmd.Privatekey, cmd.NetworkID.NetworkID())
 		if err != nil {
 			return err
 		}
@@ -63,7 +64,7 @@ func (cmd *SendCommand) Run(version util.Version) error {
 		cmd.Log().Debug().Msg("seal signed")
 	}
 
-	PrettyPrint(cmd.Out, cmd.Pretty, sl)
+	currencycmds.PrettyPrint(cmd.Out, cmd.Pretty, sl)
 
 	if cmd.DryRun {
 		return nil
