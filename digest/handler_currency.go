@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	"github.com/spikeekips/mitum-currency/currency"
@@ -90,7 +91,7 @@ func (hd *Handlers) handleCurrency(w http.ResponseWriter, r *http.Request) {
 }
 
 func (hd *Handlers) handleCurrencyInGroup(cid string) ([]byte, error) {
-	var de currency.CurrencyDesign
+	var de extensioncurrency.CurrencyDesign
 	var st state.State
 	if hd.cp == nil {
 		return nil, quicnetwork.NotSupportedErorr.Errorf("missing currency pool")
@@ -110,7 +111,7 @@ func (hd *Handlers) handleCurrencyInGroup(cid string) ([]byte, error) {
 	return hd.enc.Marshal(i)
 }
 
-func (hd *Handlers) buildCurrency(de currency.CurrencyDesign, st state.State) (Hal, error) {
+func (hd *Handlers) buildCurrency(de extensioncurrency.CurrencyDesign, st state.State) (Hal, error) {
 	h, err := hd.combineURL(HandlerPathCurrency, "currencyid", de.Currency().String())
 	if err != nil {
 		return nil, err

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"time"
 
+	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
 	"github.com/pkg/errors"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
@@ -128,13 +129,13 @@ func (Builder) templateTransfersFact() Hal {
 }
 
 func (Builder) templateCurrencyRegisterFact() Hal {
-	po := currency.NewCurrencyPolicy(templateBig, currency.NewNilFeeer())
-	de := currency.NewCurrencyDesign(
+	po := extensioncurrency.NewCurrencyPolicy(templateBig, extensioncurrency.NewNilFeeer())
+	de := extensioncurrency.NewCurrencyDesign(
 		currency.NewAmount(templateBig, templateCurrencyID),
 		templateReceiver,
 		po,
 	)
-	fact := currency.NewCurrencyRegisterFact(templateToken, de)
+	fact := extensioncurrency.NewCurrencyRegisterFact(templateToken, de)
 
 	hal := NewBaseHal(fact, HalLink{})
 
@@ -148,8 +149,8 @@ func (Builder) templateCurrencyRegisterFact() Hal {
 }
 
 func (Builder) templateCurrencyPolicyUpdaterFact() Hal {
-	po := currency.NewCurrencyPolicy(templateBig, currency.NewNilFeeer())
-	fact := currency.NewCurrencyPolicyUpdaterFact(templateToken, templateCurrencyID, po)
+	po := extensioncurrency.NewCurrencyPolicy(templateBig, extensioncurrency.NewNilFeeer())
+	fact := extensioncurrency.NewCurrencyPolicyUpdaterFact(templateToken, templateCurrencyID, po)
 
 	hal := NewBaseHal(fact, HalLink{})
 
@@ -177,9 +178,9 @@ func (bl Builder) BuildFact(b []byte) (Hal, error) {
 		return bl.buildFactKeyUpdater(t)
 	case currency.TransfersFact:
 		return bl.buildFactTransfers(t)
-	case currency.CurrencyRegisterFact:
+	case extensioncurrency.CurrencyRegisterFact:
 		return bl.buildFactCurrencyRegister(t)
-	case currency.CurrencyPolicyUpdaterFact:
+	case extensioncurrency.CurrencyPolicyUpdaterFact:
 		return bl.buildFactCurrencyPolicyUpdater(t)
 	default:
 		return nil, errors.Errorf("unknown fact, %T", fact)
@@ -306,20 +307,20 @@ func (bl Builder) buildFactTransfers(fact currency.TransfersFact) (Hal, error) {
 		AddExtras("signature_base", base.NewBytesForFactSignature(nfact, bl.networkID)), nil
 }
 
-func (bl Builder) buildFactCurrencyRegister(fact currency.CurrencyRegisterFact) (Hal, error) {
+func (bl Builder) buildFactCurrencyRegister(fact extensioncurrency.CurrencyRegisterFact) (Hal, error) {
 	token, err := bl.checkToken(fact.Token())
 	if err != nil {
 		return nil, err
 	}
 
-	nfact := currency.NewCurrencyRegisterFact(token, fact.Currency())
+	nfact := extensioncurrency.NewCurrencyRegisterFact(token, fact.Currency())
 	if err = bl.isValidFactCurrencyRegister(nfact); err != nil {
 		return nil, err
 	}
 
 	var hal Hal
 	hal = NewBaseHal(nil, HalLink{})
-	op, err := currency.NewCurrencyRegister(
+	op, err := extensioncurrency.NewCurrencyRegister(
 		nfact,
 		[]base.FactSign{
 			base.RawBaseFactSign(templatePublickey, templateSignature, templateSignedAt),
@@ -339,20 +340,20 @@ func (bl Builder) buildFactCurrencyRegister(fact currency.CurrencyRegisterFact) 
 		AddExtras("signature_base", base.NewBytesForFactSignature(nfact, bl.networkID)), nil
 }
 
-func (bl Builder) buildFactCurrencyPolicyUpdater(fact currency.CurrencyPolicyUpdaterFact) (Hal, error) {
+func (bl Builder) buildFactCurrencyPolicyUpdater(fact extensioncurrency.CurrencyPolicyUpdaterFact) (Hal, error) {
 	token, err := bl.checkToken(fact.Token())
 	if err != nil {
 		return nil, err
 	}
 
-	nfact := currency.NewCurrencyPolicyUpdaterFact(token, fact.Currency(), fact.Policy())
+	nfact := extensioncurrency.NewCurrencyPolicyUpdaterFact(token, fact.Currency(), fact.Policy())
 	if err = bl.isValidFactCurrencyPolicyUpdater(nfact); err != nil {
 		return nil, err
 	}
 
 	var hal Hal
 	hal = NewBaseHal(nil, HalLink{})
-	op, err := currency.NewCurrencyPolicyUpdater(
+	op, err := extensioncurrency.NewCurrencyPolicyUpdater(
 		nfact,
 		[]base.FactSign{
 			base.RawBaseFactSign(templatePublickey, templateSignature, templateSignedAt),
@@ -436,7 +437,7 @@ func (Builder) isValidFactTransfers(fact currency.TransfersFact) error {
 	return nil
 }
 
-func (Builder) isValidFactCurrencyRegister(fact currency.CurrencyRegisterFact) error {
+func (Builder) isValidFactCurrencyRegister(fact extensioncurrency.CurrencyRegisterFact) error {
 	if err := fact.IsValid(nil); err != nil {
 		return err
 	}
@@ -456,7 +457,7 @@ func (Builder) isValidFactCurrencyRegister(fact currency.CurrencyRegisterFact) e
 	return nil
 }
 
-func (Builder) isValidFactCurrencyPolicyUpdater(fact currency.CurrencyPolicyUpdaterFact) error {
+func (Builder) isValidFactCurrencyPolicyUpdater(fact extensioncurrency.CurrencyPolicyUpdaterFact) error {
 	if err := fact.IsValid(nil); err != nil {
 		return err
 	}
@@ -488,9 +489,9 @@ func (bl Builder) BuildOperation(b []byte) (Hal, error) {
 			hal, err = bl.buildKeyUpdater(t)
 		case currency.Transfers:
 			hal, err = bl.buildTransfers(t)
-		case currency.CurrencyRegister:
+		case extensioncurrency.CurrencyRegister:
 			hal, err = bl.buildCurrencyRegister(t)
-		case currency.CurrencyPolicyUpdater:
+		case extensioncurrency.CurrencyPolicyUpdater:
 			hal, err = bl.buildCurrencyPolicyUpdater(t)
 		default:
 			return errors.Errorf("unknown operation.Operation, %T", t)
@@ -558,32 +559,32 @@ func (bl Builder) buildTransfers(op currency.Transfers) (Hal, error) {
 	}
 }
 
-func (bl Builder) buildCurrencyRegister(op currency.CurrencyRegister) (Hal, error) {
+func (bl Builder) buildCurrencyRegister(op extensioncurrency.CurrencyRegister) (Hal, error) {
 	fs := bl.updateFactSigns(op.Signs())
 
-	if nop, err := currency.NewCurrencyRegister(op.Fact().(currency.CurrencyRegisterFact), fs, op.Memo); err != nil {
+	if nop, err := extensioncurrency.NewCurrencyRegister(op.Fact().(extensioncurrency.CurrencyRegisterFact), fs, op.Memo); err != nil {
 		return nil, err
 	} else if err := nop.IsValid(bl.networkID); err != nil {
 		return nil, err
-	} else if err := bl.isValidFactCurrencyRegister(nop.Fact().(currency.CurrencyRegisterFact)); err != nil {
+	} else if err := bl.isValidFactCurrencyRegister(nop.Fact().(extensioncurrency.CurrencyRegisterFact)); err != nil {
 		return nil, err
 	} else {
 		return NewBaseHal(nop, HalLink{}), nil
 	}
 }
 
-func (bl Builder) buildCurrencyPolicyUpdater(op currency.CurrencyPolicyUpdater) (Hal, error) {
+func (bl Builder) buildCurrencyPolicyUpdater(op extensioncurrency.CurrencyPolicyUpdater) (Hal, error) {
 	fs := bl.updateFactSigns(op.Signs())
 
-	if nop, err := currency.NewCurrencyPolicyUpdater(
-		op.Fact().(currency.CurrencyPolicyUpdaterFact),
+	if nop, err := extensioncurrency.NewCurrencyPolicyUpdater(
+		op.Fact().(extensioncurrency.CurrencyPolicyUpdaterFact),
 		fs,
 		op.Memo,
 	); err != nil {
 		return nil, err
 	} else if err := nop.IsValid(bl.networkID); err != nil {
 		return nil, err
-	} else if err := bl.isValidFactCurrencyPolicyUpdater(nop.Fact().(currency.CurrencyPolicyUpdaterFact)); err != nil {
+	} else if err := bl.isValidFactCurrencyPolicyUpdater(nop.Fact().(extensioncurrency.CurrencyPolicyUpdaterFact)); err != nil {
 		return nil, err
 	} else {
 		return NewBaseHal(nop, HalLink{}), nil

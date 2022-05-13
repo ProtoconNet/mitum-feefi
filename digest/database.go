@@ -9,8 +9,8 @@ import (
 	"strings"
 	"sync"
 
+	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
 	"github.com/pkg/errors"
-	"github.com/protoconNet/mitum-account-extension/extension"
 	"github.com/rs/zerolog"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
@@ -32,7 +32,8 @@ var maxLimit int64 = 50
 
 var (
 	defaultColNameAccount   = "digest_ac"
-	defaultColNameExtension = "digest_et"
+	defaultColNameExtension = "digest_ex"
+	defaultColNameFeefi     = "digest_fe"
 	defaultColNameBalance   = "digest_bl"
 	defaultColNameOperation = "digest_op"
 )
@@ -936,7 +937,7 @@ func (st *Database) ContractAccountStatus(a base.Address) (base.Address, bool, b
 		}
 	}
 
-	v, err := extension.StateContractAccountStatusValue(sta)
+	v, err := extensioncurrency.StateContractAccountValue(sta)
 	if err != nil {
 		return nil, false, lastHeight, previousHeight, err
 	}

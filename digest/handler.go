@@ -6,11 +6,11 @@ import (
 	"strings"
 	"time"
 
+	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/seal"
 	"github.com/spikeekips/mitum/launch/process"
@@ -39,9 +39,11 @@ var (
 	HandlerPathOperationsByHeight         = `/block/{height:[0-9]+}/operations`
 	HandlerPathManifestByHeight           = `/block/{height:[0-9]+}/manifest`
 	HandlerPathManifestByHash             = `/block/{hash:(?i)[0-9a-z][0-9a-z]+}/manifest`
-	HandlerPathAccount                    = `/account/{address:(?i)` + base.REStringAddressString + `}`            // revive:disable-line:line-length-limit
-	HandlerPathAccountOperations          = `/account/{address:(?i)` + base.REStringAddressString + `}/operations` // revive:disable-line:line-length-limit
+	HandlerPathAccount                    = `/account/{address:(?i)` + base.REStringAddressString + `}`                       // revive:disable-line:line-length-limit
+	HandlerPathAccountOperations          = `/account/{address:(?i)` + base.REStringAddressString + `}/operations`            // revive:disable-line:line-length-limit
+	HandlerPathAccountFeefi               = `/account/{address:(?i)` + base.REStringAddressString + `}/feefi/{currencyid:.*}` // revive:disable-line:line-length-limit
 	HandlerPathAccounts                   = `/accounts`
+	HandlerPathFeefi                      = `/feefi/{currencyid:.*}`
 	HandlerPathOperationBuildFactTemplate = `/builder/operation/fact/template/{fact:[\w][\w\-]*}`
 	HandlerPathOperationBuildFact         = `/builder/operation/fact`
 	HandlerPathOperationBuildSign         = `/builder/operation/sign`
@@ -93,7 +95,7 @@ type Handlers struct {
 	enc             encoder.Encoder
 	database        *Database
 	cache           Cache
-	cp              *currency.CurrencyPool
+	cp              *extensioncurrency.CurrencyPool
 	nodeInfoHandler network.NodeInfoHandler
 	send            func(interface{}) (seal.Seal, error)
 	router          *mux.Router
@@ -111,7 +113,7 @@ func NewHandlers(
 	enc encoder.Encoder,
 	st *Database,
 	cache Cache,
-	cp *currency.CurrencyPool,
+	cp *extensioncurrency.CurrencyPool,
 ) *Handlers {
 	return &Handlers{
 		Logging: logging.NewLogging(func(c zerolog.Context) zerolog.Context {

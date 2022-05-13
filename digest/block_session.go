@@ -6,8 +6,9 @@ import (
 	"sync"
 	"time"
 
+	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
+	"github.com/ProtoconNet/mitum-feefi/feefi"
 	"github.com/pkg/errors"
-	"github.com/protoconNet/mitum-account-extension/extension"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base/block"
 	"github.com/spikeekips/mitum/base/operation"
@@ -31,6 +32,9 @@ type BlockSession struct {
 	accountModels               []mongo.WriteModel
 	balanceModels               []mongo.WriteModel
 	contractAccountStatusModels []mongo.WriteModel
+	feefiPoolModels             []mongo.WriteModel
+	feefiDesignModels           []mongo.WriteModel
+	feefiBalanceModels          []mongo.WriteModel
 	statesValue                 *sync.Map
 }
 
@@ -91,6 +95,21 @@ func (bs *BlockSession) Commit(ctx context.Context) error {
 
 	if len(bs.contractAccountStatusModels) > 0 {
 		if err := bs.writeModels(ctx, defaultColNameExtension, bs.contractAccountStatusModels); err != nil {
+			return err
+		}
+	}
+	if len(bs.feefiPoolModels) > 0 {
+		if err := bs.writeModels(ctx, defaultColNameFeefi, bs.feefiPoolModels); err != nil {
+			return err
+		}
+	}
+	if len(bs.feefiDesignModels) > 0 {
+		if err := bs.writeModels(ctx, defaultColNameFeefi, bs.feefiDesignModels); err != nil {
+			return err
+		}
+	}
+	if len(bs.feefiBalanceModels) > 0 {
+		if err := bs.writeModels(ctx, defaultColNameFeefi, bs.feefiBalanceModels); err != nil {
 			return err
 		}
 	}
@@ -172,6 +191,9 @@ func (bs *BlockSession) prepareAccounts() error {
 	var accountModels []mongo.WriteModel
 	var balanceModels []mongo.WriteModel
 	var contractAccountStatusModels []mongo.WriteModel
+	var feefiPoolModels []mongo.WriteModel
+	var feefiDesignModels []mongo.WriteModel
+	var feefiBalanceModels []mongo.WriteModel
 	for i := range bs.block.States() {
 		st := bs.block.States()[i]
 		switch {
@@ -187,12 +209,30 @@ func (bs *BlockSession) prepareAccounts() error {
 				return err
 			}
 			balanceModels = append(balanceModels, j...)
-		case extension.IsStateContractAccountStatusKey(st.Key()):
+		case extensioncurrency.IsStateContractAccountKey(st.Key()):
 			j, err := bs.handleContractAccountStatusState(st)
 			if err != nil {
 				return err
 			}
 			contractAccountStatusModels = append(contractAccountStatusModels, j...)
+		case feefi.IsStatePoolKey(st.Key()):
+			j, err := bs.handleFeefiPoolState(st)
+			if err != nil {
+				return err
+			}
+			feefiPoolModels = append(feefiPoolModels, j...)
+		case feefi.IsStateDesignKey(st.Key()):
+			j, err := bs.handleFeefiDesignState(st)
+			if err != nil {
+				return err
+			}
+			feefiDesignModels = append(feefiDesignModels, j...)
+		case feefi.IsStateBalanceKey(st.Key()):
+			j, err := bs.handleFeefiBalanceState(st)
+			if err != nil {
+				return err
+			}
+			feefiBalanceModels = append(feefiBalanceModels, j...)
 		default:
 			continue
 		}
@@ -203,6 +243,15 @@ func (bs *BlockSession) prepareAccounts() error {
 
 	if len(contractAccountStatusModels) > 0 {
 		bs.contractAccountStatusModels = contractAccountStatusModels
+	}
+	if len(feefiPoolModels) > 0 {
+		bs.feefiPoolModels = feefiPoolModels
+	}
+	if len(feefiDesignModels) > 0 {
+		bs.feefiDesignModels = feefiDesignModels
+	}
+	if len(feefiBalanceModels) > 0 {
+		bs.feefiBalanceModels = feefiBalanceModels
 	}
 
 	return nil
@@ -228,6 +277,30 @@ func (bs *BlockSession) handleBalanceState(st state.State) ([]mongo.WriteModel, 
 
 func (bs *BlockSession) handleContractAccountStatusState(st state.State) ([]mongo.WriteModel, error) {
 	doc, err := NewContractAccountStatusDoc(st, bs.st.database.Encoder())
+	if err != nil {
+		return nil, err
+	}
+	return []mongo.WriteModel{mongo.NewInsertOneModel().SetDocument(doc)}, nil
+}
+
+func (bs *BlockSession) handleFeefiPoolState(st state.State) ([]mongo.WriteModel, error) {
+	doc, err := NewFeefiPoolDoc(st, bs.st.database.Encoder())
+	if err != nil {
+		return nil, err
+	}
+	return []mongo.WriteModel{mongo.NewInsertOneModel().SetDocument(doc)}, nil
+}
+
+func (bs *BlockSession) handleFeefiDesignState(st state.State) ([]mongo.WriteModel, error) {
+	doc, err := NewFeefiDesignDoc(st, bs.st.database.Encoder())
+	if err != nil {
+		return nil, err
+	}
+	return []mongo.WriteModel{mongo.NewInsertOneModel().SetDocument(doc)}, nil
+}
+
+func (bs *BlockSession) handleFeefiBalanceState(st state.State) ([]mongo.WriteModel, error) {
+	doc, err := NewFeefiBalanceDoc(st, bs.st.database.Encoder())
 	if err != nil {
 		return nil, err
 	}
@@ -283,6 +356,10 @@ func (bs *BlockSession) close() error {
 	bs.operationModels = nil
 	bs.accountModels = nil
 	bs.balanceModels = nil
+	bs.contractAccountStatusModels = nil
+	bs.feefiPoolModels = nil
+	bs.feefiDesignModels = nil
+	bs.feefiBalanceModels = nil
 
 	return bs.st.Close()
 }

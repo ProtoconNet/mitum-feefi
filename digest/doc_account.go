@@ -1,9 +1,8 @@
 package digest
 
 import (
+	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
 	"github.com/pkg/errors"
-	"github.com/protoconNet/mitum-account-extension/extension"
-
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/state"
@@ -118,7 +117,7 @@ func (doc ContractAccountStatusDoc) MarshalBSON() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	address := doc.st.Key()[:len(doc.st.Key())-len(extension.StateKeyContractAccountStatusSuffix)]
+	address := doc.st.Key()[:len(doc.st.Key())-len(extensioncurrency.StateKeyContractAccountSuffix)]
 	m["address"] = address
 	m["height"] = doc.st.Height()
 

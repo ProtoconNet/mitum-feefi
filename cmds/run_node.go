@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
+	"github.com/ProtoconNet/mitum-feefi/digest"
 	"github.com/pkg/errors"
-	"github.com/protoconNet/mitum-account-extension/digest"
 
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/block"
@@ -24,7 +25,6 @@ import (
 	"github.com/ulule/limiter/v3"
 
 	currencycmds "github.com/spikeekips/mitum-currency/cmds"
-	"github.com/spikeekips/mitum-currency/currency"
 	currencydigest "github.com/spikeekips/mitum-currency/digest"
 )
 
@@ -105,8 +105,8 @@ func (cmd *RunCommand) hookSetStateHandler(ctx context.Context) (context.Context
 		return ctx, err
 	}
 
-	var cp *currency.CurrencyPool
-	if err := currencycmds.LoadCurrencyPoolContextValue(ctx, &cp); err != nil {
+	var cp *extensioncurrency.CurrencyPool
+	if err := LoadCurrencyPoolContextValue(ctx, &cp); err != nil {
 		return ctx, err
 	}
 
@@ -126,7 +126,7 @@ func (cmd *RunCommand) hookSetStateHandler(ctx context.Context) (context.Context
 
 func (cmd *RunCommand) whenBlockSaved(
 	st *mongodbstorage.Database,
-	cp *currency.CurrencyPool,
+	cp *extensioncurrency.CurrencyPool,
 	di *digest.Digester,
 ) pm.ProcessFunc {
 	return func(ctx context.Context) (context.Context, error) {
@@ -141,7 +141,7 @@ func (cmd *RunCommand) whenBlockSaved(
 			}()
 		}
 
-		if err := currencydigest.LoadCurrenciesFromDatabase(st, blocks[0].Height(), func(sta state.State) (bool, error) {
+		if err := digest.LoadCurrenciesFromDatabase(st, blocks[0].Height(), func(sta state.State) (bool, error) {
 			if err := cp.Set(sta); err != nil {
 				return false, err
 			}
@@ -235,8 +235,8 @@ func (cmd *RunCommand) setDigestHandlers(
 		return nil, err
 	}
 
-	var cp *currency.CurrencyPool
-	if err := currencycmds.LoadCurrencyPoolContextValue(ctx, &cp); err != nil {
+	var cp *extensioncurrency.CurrencyPool
+	if err := LoadCurrencyPoolContextValue(ctx, &cp); err != nil {
 		return nil, err
 	}
 

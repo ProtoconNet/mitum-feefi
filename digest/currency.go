@@ -10,7 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"github.com/spikeekips/mitum-currency/currency"
+	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/state"
 	mongodbstorage "github.com/spikeekips/mitum/storage/mongodb"
@@ -26,7 +26,7 @@ func LoadCurrenciesFromDatabase(
 	var keys []string
 	for {
 		filter := util.NewBSONFilter("key", bson.M{
-			"$regex": fmt.Sprintf(`^%s`, regexp.QuoteMeta(currency.StateKeyCurrencyDesignPrefix)),
+			"$regex": fmt.Sprintf(`^%s`, regexp.QuoteMeta(extensioncurrency.StateKeyCurrencyDesignPrefix)),
 		}).Add("height", bson.M{"$gte": height})
 
 		var q primitive.D

@@ -3,8 +3,9 @@ package cmds
 import (
 	"context"
 
+	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
+	"github.com/ProtoconNet/mitum-feefi/digest"
 	"github.com/pkg/errors"
-	"github.com/protoconNet/mitum-account-extension/digest"
 
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/launch/config"
@@ -16,7 +17,6 @@ import (
 	"github.com/spikeekips/mitum/util/logging"
 
 	currencycmds "github.com/spikeekips/mitum-currency/cmds"
-	"github.com/spikeekips/mitum-currency/currency"
 )
 
 var (
@@ -137,8 +137,8 @@ func digestFollowup(ctx context.Context, height base.Height) error {
 		return err
 	}
 
-	var cp *currency.CurrencyPool
-	if err := currencycmds.LoadCurrencyPoolContextValue(ctx, &cp); err != nil {
+	var cp *extensioncurrency.CurrencyPool
+	if err := LoadCurrencyPoolContextValue(ctx, &cp); err != nil {
 		return err
 	}
 

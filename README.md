@@ -13,7 +13,7 @@
 
 > NOTE: at this time, *mitum* and *mitum-account-extension* is actively developed, so before building mitum-account-extension, you will be better with building the latest
 mitum-account-extension source.
-> `$ git clone https://github.com/protoconNet/mitum-account-extension`
+> `$ git clone https://github.com/protoconNet/mitum-feefi`
 >
 > and then, add `replace github.com/spikeekips/mitum => <your mitum source directory>` to `go.mod` of *mitum-account-extension*.
 

@@ -9,6 +9,8 @@ dmitri.shuralyov.com/state v0.0.0-20180228185332-28bcc343414c/go.mod h1:0PRwlb0D
 git.apache.org/thrift.git v0.0.0-20180902110319-2566ecd5d999/go.mod h1:fPE2ZNJGynbRyZ4dJvy6G277gSllfV2HJqblrnkyeyg=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/DataDog/datadog-go v3.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
+github.com/ProtoconNet/mitum-currency-extension v0.0.0-20220531064934-c645585a5af8 h1:FHZBJgOWEKwo304OpfvoAraKoOP80sadie+4td5HCog=
+github.com/ProtoconNet/mitum-currency-extension v0.0.0-20220531064934-c645585a5af8/go.mod h1:XOncMhibX0KaJykiKa7XDeUBs2HzIxgiXt3ZB6f92po=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
 github.com/alecthomas/kong v0.2.20 h1:j8icvBJGdkkvv4lZ8rWN9MF5Z9DWBEmQrjZ69Z8XFwM=
 github.com/alecthomas/kong v0.2.20/go.mod h1:ka3VZ8GZNPXv9Ov+j4YNLkI8mTuhXyr/0ktSlqIydQQ=
@@ -317,11 +319,10 @@ github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPx
 github.com/sirupsen/logrus v1.4.2/go.mod h1:tLMulIdttU9McNUspp0xgXVQah82FyeX6MwdIuYE2rE=
 github.com/sourcegraph/annotate v0.0.0-20160123013949-f4cad6c6324d/go.mod h1:UdhH50NIW0fCiwBSr0co2m7BnFLdv4fQTgdqdJTHFeE=
 github.com/sourcegraph/syntaxhighlight v0.0.0-20170531221838-bd320f5d308e/go.mod h1:HuIsMU8RRBOtsCgI77wP899iHVBQpCmg4ErYMZB+2IA=
-github.com/spikeekips/mitum v0.0.0-20220104094441-4d02cb4a112a/go.mod h1:pyP+AHGWNX6CaW7LL3DCTXcfz6KXrNZRKDVWaaa/+aY=
 github.com/spikeekips/mitum v0.0.0-20220408034603-1a0b360e6244 h1:Z/kdojpG7+g9EV7hYjZf1+LLDcRFeTLU0UNfn63+nQs=
 github.com/spikeekips/mitum v0.0.0-20220408034603-1a0b360e6244/go.mod h1:pyP+AHGWNX6CaW7LL3DCTXcfz6KXrNZRKDVWaaa/+aY=
-github.com/spikeekips/mitum-currency v0.0.0-20220104094610-7b9f71974b4f h1:gufuVLWmOx592kUisqDiUiXGG9hxgkLHEDduBpuE7Es=
-github.com/spikeekips/mitum-currency v0.0.0-20220104094610-7b9f71974b4f/go.mod h1:EZe91ssD/8pHoNV69es0in62PQOIcCV3UzmnOmboykA=
+github.com/spikeekips/mitum-currency v0.0.0-20220408034738-9478186fe086 h1:hARGCoe6rIjjqDbqKjHfDJ/3N0OJcks299rPY6sDXls=
+github.com/spikeekips/mitum-currency v0.0.0-20220408034738-9478186fe086/go.mod h1:YYARgHBctsPLz4BsrtFfNIIjdijBQTNb6vCNuLiC4zM=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.1.1/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
