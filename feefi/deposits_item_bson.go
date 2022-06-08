@@ -12,7 +12,7 @@ func (it BaseDepositsItem) MarshalBSON() ([]byte, error) {
 		bsonenc.MergeBSONM(bsonenc.NewHintedDoc(it.Hint()),
 			bson.M{
 				"pool":    it.pool,
-				"poolcid": it.poolcid,
+				"poolcid": it.poolID,
 				"amounts": it.amounts,
 			}),
 	)

@@ -68,6 +68,7 @@ func LoadBalance(decoder func(interface{}) error, encs *encoder.Encoders) (state
 	}
 }
 
+/*
 func LoadContractAccountStatus(decoder func(interface{}) error, encs *encoder.Encoders) (state.State, error) {
 	var b bson.Raw
 	if err := decoder(&b); err != nil {
@@ -77,8 +78,65 @@ func LoadContractAccountStatus(decoder func(interface{}) error, encs *encoder.En
 	if _, hinter, err := mongodbstorage.LoadDataFromDoc(b, encs); err != nil {
 		return nil, err
 	} else if st, ok := hinter.(state.State); !ok {
-		return nil, errors.Errorf("not ContractAccountStatus : %T", hinter)
+		return nil, errors.Errorf("not ContractAccount state : %T", hinter)
 	} else {
 		return st, nil
 	}
+}
+*/
+
+func LoadFeefiPoolValue(decoder func(interface{}) error, encs *encoder.Encoders) (FeefiPoolValue, error) {
+	var b bson.Raw
+	if err := decoder(&b); err != nil {
+		return FeefiPoolValue{}, err
+	}
+	_, hinter, err := mongodbstorage.LoadDataFromDoc(b, encs)
+	if err != nil {
+		return FeefiPoolValue{}, err
+	}
+
+	rs, ok := hinter.(FeefiPoolValue)
+	if !ok {
+		return FeefiPoolValue{}, errors.Errorf("not FeefiPoolValue: %T", hinter)
+	}
+
+	return rs, nil
+}
+
+/*
+func LoadFeefiDesign(decoder func(interface{}) error, encs *encoder.Encoders) (state.State, error) {
+	var b bson.Raw
+	if err := decoder(&b); err != nil {
+		return nil, err
+	}
+	_, hinter, err := mongodbstorage.LoadDataFromDoc(b, encs)
+	if err != nil {
+		return nil, err
+	}
+
+	rs, ok := hinter.(state.State)
+	if !ok {
+		return nil, errors.Errorf("not FeefiDesign: %T", hinter)
+	}
+
+	return rs, nil
+}
+*/
+
+func LoadState(decoder func(interface{}) error, encs *encoder.Encoders) (state.State, error) {
+	var b bson.Raw
+	if err := decoder(&b); err != nil {
+		return nil, err
+	}
+	_, hinter, err := mongodbstorage.LoadDataFromDoc(b, encs)
+	if err != nil {
+		return nil, err
+	}
+
+	rs, ok := hinter.(state.State)
+	if !ok {
+		return nil, errors.Errorf("not FeefiDesign: %T", hinter)
+	}
+
+	return rs, nil
 }

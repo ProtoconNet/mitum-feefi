@@ -12,8 +12,8 @@ func (pl Pool) MarshalBSON() ([]byte, error) {
 		bsonenc.NewHintedDoc(pl.Hint()),
 		bson.M{
 			"users":                pl.users,
-			"previncomefeebalance": pl.prevIncomeBalance,
-			"prevoutlayfeebalance": pl.prevOutlayBalance,
+			"previncomefeebalance": pl.prevIncomeAmount,
+			"prevoutlayfeebalance": pl.prevOutlayAmount,
 		}),
 	)
 }
@@ -38,8 +38,8 @@ func (pl PoolUserBalance) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(bsonenc.MergeBSONM(
 		bsonenc.NewHintedDoc(pl.Hint()),
 		bson.M{
-			"incomeamount": pl.incomeAmount,
-			"outlayamount": pl.outlayAmount,
+			"incomeamount": pl.income,
+			"outlayamount": pl.outlay,
 		}),
 	)
 }

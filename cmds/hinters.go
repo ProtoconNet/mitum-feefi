@@ -30,6 +30,7 @@ var types = []hint.Type{
 	currency.TransfersItemMultiAmountsType,
 	currency.TransfersItemSingleAmountType,
 	currency.TransfersType,
+	extensioncurrency.AmountValueType,
 	extensioncurrency.CurrencyDesignType,
 	extensioncurrency.CurrencyPolicyType,
 	extensioncurrency.CurrencyPolicyUpdaterFactType,
@@ -73,6 +74,7 @@ var types = []hint.Type{
 	digest.NodeInfoType,
 	digest.BaseHalType,
 	digest.AccountValueType,
+	digest.FeefiPoolValueType,
 	digest.OperationValueType,
 }
 
@@ -92,6 +94,7 @@ var hinters = []hint.Hinter{
 	currency.TransfersItemMultiAmountsHinter,
 	currency.TransfersItemSingleAmountHinter,
 	currency.TransfersHinter,
+	extensioncurrency.AmountValueHinter,
 	extensioncurrency.CurrencyDesignHinter,
 	extensioncurrency.CurrencyPolicyUpdaterFactHinter,
 	extensioncurrency.CurrencyPolicyUpdaterHinter,
@@ -132,6 +135,7 @@ var hinters = []hint.Hinter{
 	feefi.PoolUserBalanceHinter,
 	feefi.DesignHinter,
 	digest.AccountValue{},
+	digest.FeefiPoolValue{},
 	digest.BaseHal{},
 	digest.NodeInfo{},
 	digest.OperationValue{},

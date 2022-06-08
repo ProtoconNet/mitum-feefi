@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
+	"github.com/ProtoconNet/mitum-feefi/feefi"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/spikeekips/mitum-currency/currency"
@@ -31,16 +32,23 @@ import (
 var maxLimit int64 = 50
 
 var (
-	defaultColNameAccount   = "digest_ac"
-	defaultColNameExtension = "digest_ex"
-	defaultColNameFeefi     = "digest_fe"
-	defaultColNameBalance   = "digest_bl"
-	defaultColNameOperation = "digest_op"
+	defaultColNameAccount        = "digest_ac"
+	defaultColNameExtension      = "digest_ex"
+	defaultColNameFeefiPool      = "digest_fpl"
+	defaultColNameFeefiPoolUsers = "digest_fpus"
+	defaultColNameFeefiDesign    = "digest_fde"
+	defaultColNameFeefiBalance   = "digest_fbl"
+	defaultColNameBalance        = "digest_bl"
+	defaultColNameOperation      = "digest_op"
 )
 
 var AllCollections = []string{
 	defaultColNameAccount,
 	defaultColNameExtension,
+	defaultColNameFeefiPool,
+	defaultColNameFeefiPoolUsers,
+	defaultColNameFeefiDesign,
+	defaultColNameFeefiBalance,
 	defaultColNameBalance,
 	defaultColNameOperation,
 }
@@ -922,7 +930,7 @@ func (st *Database) ContractAccountStatus(a base.Address) (base.Address, bool, b
 		defaultColNameExtension,
 		q,
 		func(res *mongo.SingleResult) error {
-			i, err := LoadContractAccountStatus(res.Decode, st.database.Encoders())
+			i, err := LoadState(res.Decode, st.database.Encoders())
 			if err != nil {
 				return err
 			}
@@ -948,4 +956,177 @@ func (st *Database) ContractAccountStatus(a base.Address) (base.Address, bool, b
 	}
 
 	return v.Owner(), v.IsActive(), lastHeight, previousHeight, nil
+}
+
+// FeefiPool returns FeefiPoolValue.
+func (st *Database) FeefiPool(fid string) (FeefiPoolValue, bool /* exists */, error) {
+	var rs FeefiPoolValue
+	if err := st.database.Client().GetByFilter(
+		defaultColNameFeefiPool,
+		util.NewBSONFilter("feefipoolid", fid).D(),
+		func(res *mongo.SingleResult) error {
+			i, err := LoadFeefiPoolValue(res.Decode, st.database.Encoders())
+			if err != nil {
+				return err
+			}
+			rs = i
+
+			return nil
+		},
+		options.FindOne().SetSort(util.NewBSONFilter("height", -1).D()),
+	); err != nil {
+		if errors.Is(err, util.NotFoundError) {
+			return rs, false, nil
+		}
+
+		return rs, false, err
+	}
+
+	// load feefi balance
+	switch ams, lastHeight, previousHeight, err := st.feefiBalance(fid); {
+	case err != nil:
+		return rs, false, err
+	default:
+		rs = rs.SetBalance(ams).
+			SetHeight(lastHeight).
+			SetPreviousHeight(previousHeight)
+	}
+
+	// load feefi design
+	switch design, lastHeight, previousHeight, err := st.feefiDesign(fid); {
+	case err != nil:
+		return rs, false, err
+	default:
+		rs = rs.SetFeefiDesign(design).
+			SetHeight(lastHeight).
+			SetPreviousHeight(previousHeight)
+	}
+
+	return rs, true, nil
+}
+
+func (st *Database) feefiBalance(fid string) ([]currency.Amount, base.Height, base.Height, error) {
+	lastHeight, previousHeight := base.NilHeight, base.NilHeight
+	var cids []string
+
+	amm := map[currency.CurrencyID]currency.Amount{}
+	for {
+		filter := util.NewBSONFilter("feefipoolid", fid)
+
+		var q primitive.D
+		if len(cids) < 1 {
+			q = filter.D()
+		} else {
+			q = filter.Add("currency", bson.M{"$nin": cids}).D()
+		}
+
+		var sta state.State
+		if err := st.database.Client().GetByFilter(
+			defaultColNameFeefiBalance,
+			q,
+			func(res *mongo.SingleResult) error {
+				i, err := LoadBalance(res.Decode, st.database.Encoders())
+				if err != nil {
+					return err
+				}
+				sta = i
+
+				return nil
+			},
+			options.FindOne().SetSort(util.NewBSONFilter("height", -1).D()),
+		); err != nil {
+			if errors.Is(err, util.NotFoundError) {
+				break
+			}
+
+			return nil, lastHeight, previousHeight, err
+		}
+
+		i, err := extensioncurrency.StateBalanceValue(sta)
+		if err != nil {
+			return nil, lastHeight, previousHeight, err
+		}
+		amm[i.Amount().Currency()] = i.Amount()
+
+		cids = append(cids, i.Amount().Currency().String())
+
+		if h := sta.Height(); h > lastHeight {
+			lastHeight = h
+			previousHeight = sta.PreviousHeight()
+		}
+	}
+
+	ams := make([]currency.Amount, len(amm))
+	var i int
+	for k := range amm {
+		ams[i] = amm[k]
+		i++
+	}
+
+	return ams, lastHeight, previousHeight, nil
+}
+
+func (st *Database) feefiDesign(fid string) (feefi.Design, base.Height, base.Height, error) {
+	lastHeight, previousHeight := base.NilHeight, base.NilHeight
+	var sta state.State
+	if err := st.database.Client().GetByFilter(
+		defaultColNameFeefiDesign,
+		util.NewBSONFilter("feefipoolid", fid).D(),
+		func(res *mongo.SingleResult) error {
+			i, err := LoadState(res.Decode, st.database.Encoders())
+			if err != nil {
+				return err
+			}
+			sta = i
+
+			return nil
+		},
+		options.FindOne().SetSort(util.NewBSONFilter("height", -1).D()),
+	); err != nil {
+		return feefi.Design{}, lastHeight, previousHeight, err
+	}
+
+	i, err := feefi.StateDesignValue(sta)
+	if err != nil {
+		return feefi.Design{}, lastHeight, previousHeight, err
+	}
+
+	if h := sta.Height(); h > lastHeight {
+		lastHeight = h
+		previousHeight = sta.PreviousHeight()
+	}
+
+	return i, lastHeight, previousHeight, nil
+}
+
+func (st *Database) FeefiByAddress(
+	address base.Address,
+	fid string,
+) (feefi.PoolUserBalance, error) {
+	var sta state.State
+	if err := st.database.Client().GetByFilter(
+		defaultColNameFeefiPoolUsers,
+		util.NewBSONFilter("feefipoolid", fid).D(),
+		func(res *mongo.SingleResult) error {
+			i, err := LoadState(res.Decode, st.database.Encoders())
+			if err != nil {
+				return err
+			}
+			sta = i
+
+			return nil
+		},
+		options.FindOne().SetSort(util.NewBSONFilter("height", -1).D()),
+	); err != nil {
+		return feefi.PoolUserBalance{}, err
+	}
+	v, err := feefi.StatePoolValue(sta)
+	if err != nil {
+		return feefi.PoolUserBalance{}, err
+	}
+	i, found := v.Users()[address.String()]
+	if !found {
+		return feefi.PoolUserBalance{}, errors.Errorf("feefi pool user not found")
+	}
+	return i, nil
 }

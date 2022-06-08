@@ -13,12 +13,12 @@ func (fact DepositFact) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(
 		bsonenc.MergeBSONM(bsonenc.NewHintedDoc(fact.Hint()),
 			bson.M{
-				"hash":    fact.h,
-				"token":   fact.token,
-				"sender":  fact.sender,
-				"pool":    fact.pool,
-				"poolcid": fact.poolCID,
-				"amount":  fact.amount,
+				"hash":   fact.h,
+				"token":  fact.token,
+				"sender": fact.sender,
+				"pool":   fact.pool,
+				"poolid": fact.poolID,
+				"amount": fact.amount,
 			}))
 }
 
@@ -27,7 +27,7 @@ type DepositsFactBSONUnpacker struct {
 	TK []byte              `bson:"token"`
 	SD base.AddressDecoder `bson:"sender"`
 	PL base.AddressDecoder `bson:"pool"`
-	CI string              `bson:"poolcid"`
+	CI string              `bson:"poolid"`
 	AM bson.Raw            `bson:"amount"`
 }
 

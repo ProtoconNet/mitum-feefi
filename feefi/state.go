@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
 	"github.com/pkg/errors"
-	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/operation"
 	"github.com/spikeekips/mitum/base/state"
@@ -15,15 +15,15 @@ import (
 var (
 	StateKeyDesignSuffix  = ":feefidesign"
 	StateKeyPoolSuffix    = ":feefipool"
-	StateKeyBalanceSuffix = ":feefibalance"
+	StateKeyBalanceSuffix = extensioncurrency.StateKeyBalanceSuffix(":feefibalance")
 )
 
-func statePoolKeyPrefix(a base.Address, poolCID currency.CurrencyID) string {
-	return fmt.Sprintf("%s-%s", a.String(), poolCID)
+func statePoolKeyPrefix(a base.Address, poolID extensioncurrency.ContractID) string {
+	return fmt.Sprintf("%s-%s", a.String(), poolID)
 }
 
-func StateKeyPool(a base.Address, poolCID currency.CurrencyID) string {
-	return fmt.Sprintf("%s%s", statePoolKeyPrefix(a, poolCID), StateKeyPoolSuffix)
+func StateKeyPool(a base.Address, poolID extensioncurrency.ContractID) string {
+	return fmt.Sprintf("%s%s", statePoolKeyPrefix(a, poolID), StateKeyPoolSuffix)
 }
 
 func IsStatePoolKey(key string) bool {
@@ -51,8 +51,8 @@ func setStatePoolValue(st state.State, v Pool) (state.State, error) {
 	return st.SetValue(uv)
 }
 
-func StateKeyDesign(a base.Address, poolCID currency.CurrencyID) string {
-	return fmt.Sprintf("%s%s", statePoolKeyPrefix(a, poolCID), StateKeyDesignSuffix)
+func StateKeyDesign(a base.Address, poolID extensioncurrency.ContractID) string {
+	return fmt.Sprintf("%s%s", statePoolKeyPrefix(a, poolID), StateKeyDesignSuffix)
 }
 
 func IsStateDesignKey(key string) bool {
@@ -80,8 +80,9 @@ func setStateDesignValue(st state.State, v Design) (state.State, error) {
 	return st.SetValue(uv)
 }
 
+/*
 func stateBalanceKeyPrefix(a base.Address, poolCID currency.CurrencyID, cid currency.CurrencyID) string {
-	return fmt.Sprintf("%s-%s-%s", a.String(), poolCID, cid)
+	return fmt.Sprintf("%s-%s-%s", poolCID, a.String(), cid)
 }
 
 func stateKeyBalance(a base.Address, poolCID, cid currency.CurrencyID) string {
@@ -112,7 +113,7 @@ func setStateBalanceValue(st state.State, v currency.Amount) (state.State, error
 	}
 	return st.SetValue(uv)
 }
-
+*/
 func checkExistsState(
 	key string,
 	getState func(key string) (state.State, bool, error),

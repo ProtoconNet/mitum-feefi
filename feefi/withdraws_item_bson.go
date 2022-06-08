@@ -12,7 +12,7 @@ func (it BaseWithdrawsItem) MarshalBSON() ([]byte, error) {
 		bsonenc.MergeBSONM(bsonenc.NewHintedDoc(it.Hint()),
 			bson.M{
 				"target":  it.target,
-				"poolcid": it.poolCID,
+				"poolcid": it.poolID,
 				"amounts": it.amounts,
 			}),
 	)

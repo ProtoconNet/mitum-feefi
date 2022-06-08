@@ -17,7 +17,7 @@ func (fact WithdrawsFact) MarshalBSON() ([]byte, error) {
 				"token":   fact.token,
 				"sender":  fact.sender,
 				"pool":    fact.pool,
-				"poolcid": fact.poolCID,
+				"poolid":  fact.poolID,
 				"amounts": fact.amounts,
 			}))
 }
@@ -27,7 +27,7 @@ type WithdrawsFactBSONUnpacker struct {
 	TK []byte              `bson:"token"`
 	SD base.AddressDecoder `bson:"sender"`
 	PL base.AddressDecoder `bson:"pool"`
-	CI string              `bson:"poolcid"`
+	CI string              `bson:"poolid"`
 	AM bson.Raw            `bson:"amounts"`
 }
 

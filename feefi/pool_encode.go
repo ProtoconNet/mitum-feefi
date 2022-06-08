@@ -1,6 +1,7 @@
 package feefi
 
 import (
+	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/util"
 	"github.com/spikeekips/mitum/util/encoder"
@@ -32,7 +33,7 @@ func (pl *Pool) unpack(enc encoder.Encoder, ht hint.Hint, bus []byte, bib []byte
 	if !ok {
 		return util.WrongTypeError.Errorf("expected Amount, not %T", h)
 	}
-	pl.prevIncomeBalance = i
+	pl.prevIncomeAmount = i
 
 	h, err = enc.Decode(bob)
 	if err != nil {
@@ -42,7 +43,7 @@ func (pl *Pool) unpack(enc encoder.Encoder, ht hint.Hint, bus []byte, bib []byte
 	if !ok {
 		return util.WrongTypeError.Errorf("expected Amount, not %T", h)
 	}
-	pl.prevOutlayBalance = j
+	pl.prevOutlayAmount = j
 
 	return nil
 }
@@ -53,21 +54,21 @@ func (pl *PoolUserBalance) unpack(enc encoder.Encoder, ht hint.Hint, bia []byte,
 	if err != nil {
 		return err
 	}
-	i, ok := h.(currency.Amount)
+	i, ok := h.(extensioncurrency.AmountValue)
 	if !ok {
 		return util.WrongTypeError.Errorf("expected Amount, not %T", h)
 	}
-	pl.incomeAmount = i
+	pl.income = i
 
 	h, err = enc.Decode(boa)
 	if err != nil {
 		return err
 	}
-	j, ok := h.(currency.Amount)
+	j, ok := h.(extensioncurrency.AmountValue)
 	if !ok {
 		return util.WrongTypeError.Errorf("expected Amount, not %T", h)
 	}
-	pl.outlayAmount = j
+	pl.outlay = j
 
 	return nil
 }

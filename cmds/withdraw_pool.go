@@ -1,6 +1,7 @@
 package cmds
 
 import (
+	extensioncmds "github.com/ProtoconNet/mitum-currency-extension/cmds"
 	"github.com/ProtoconNet/mitum-feefi/feefi"
 	"github.com/pkg/errors"
 
@@ -15,13 +16,13 @@ import (
 type WithdrawPoolCommand struct {
 	*BaseCommand
 	OperationFlags
-	Sender   AddressFlag                       `arg:"" name:"sender" help:"sender address" required:"true"`
-	Currency currencycmds.CurrencyIDFlag       `arg:"" name:"currency" help:"pool currency" required:"true"`
-	Pool     AddressFlag                       `arg:"" name:"pool" help:"target contract account address" required:"true"`
-	Seal     mitumcmds.FileLoad                `help:"seal" optional:""`
-	Amounts  []currencycmds.CurrencyAmountFlag `arg:"" name:"currency-amount" help:"amount (ex: \"<currency>,<amount>\")"`
-	sender   base.Address
-	pool     base.Address
+	Sender  AddressFlag                       `arg:"" name:"sender" help:"sender address" required:"true"`
+	PoolID  extensioncmds.ContractIDFlag      `arg:"" name:"pool-id" help:"pool currency id" required:"true"`
+	Pool    AddressFlag                       `arg:"" name:"pool" help:"pool address" required:"true"`
+	Seal    mitumcmds.FileLoad                `help:"seal" optional:""`
+	Amounts []currencycmds.CurrencyAmountFlag `arg:"" name:"currency-amount" help:"amount (ex: \"<currency>,<amount>\")"`
+	sender  base.Address
+	pool    base.Address
 }
 
 func NewWithdrawPoolCommand() WithdrawPoolCommand {
@@ -91,7 +92,7 @@ func (cmd *WithdrawPoolCommand) createOperation() (operation.Operation, error) {
 		ams[i] = am
 	}
 
-	fact := feefi.NewWithdrawsFact([]byte(cmd.Token), cmd.sender, cmd.pool, cmd.Currency.CID, ams)
+	fact := feefi.NewWithdrawsFact([]byte(cmd.Token), cmd.sender, cmd.pool, cmd.PoolID.ID, ams)
 
 	var fs []base.FactSign
 	sig, err := base.NewFactSignature(cmd.Privatekey, fact, cmd.NetworkID.NetworkID())

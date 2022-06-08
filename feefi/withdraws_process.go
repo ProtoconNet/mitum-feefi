@@ -183,8 +183,8 @@ func (opp *WithdrawsItemProcessor) Close() error {
 type WithdrawsProcessor struct {
 	cp *extensioncurrency.CurrencyPool
 	Withdraws
-	wb       map[currency.CurrencyID]currency.AmountState // amount states of withdrawer account
-	pb       map[currency.CurrencyID]currency.AmountState // amount states of pool account
+	wb       map[currency.CurrencyID]currency.AmountState          // amount states of withdrawer account
+	pb       map[currency.CurrencyID]extensioncurrency.AmountState // amount states of pool account
 	fs       state.State
 	required map[currency.CurrencyID][2]currency.Big
 }
@@ -234,7 +234,7 @@ func (opp *WithdrawsProcessor) PreProcess(
 
 	// prepare pool state
 	// keep pool state
-	st, err := existsState(StateKeyPool(fact.pool, fact.poolCID), " feefi pool", getState)
+	st, err := existsState(StateKeyPool(fact.pool, fact.poolID), " feefi pool", getState)
 	if err != nil {
 		return nil, err
 	}
@@ -260,7 +260,7 @@ func (opp *WithdrawsProcessor) PreProcess(
 
 	if required, err := opp.calculateFee(getState); err != nil {
 		return nil, operation.NewBaseReasonErrorFromError(err)
-	} else if pb, err := currency.CheckEnoughBalance(fact.pool, required, getState); err != nil {
+	} else if pb, err := CheckEnoughBalance(fact.pool, fact.poolID, required, getState); err != nil {
 		return nil, err
 	} else {
 		// required amount and fee
@@ -293,7 +293,7 @@ func (opp *WithdrawsProcessor) PreProcess(
 
 	// prepare fact pool amount state
 	// keep pool amount state map
-	pb := map[currency.CurrencyID]currency.AmountState{}
+	pb := map[currency.CurrencyID]extensioncurrency.AmountState{}
 	for cid := range opp.required {
 		if opp.cp != nil {
 			if !opp.cp.Exists(cid) {
@@ -301,12 +301,12 @@ func (opp *WithdrawsProcessor) PreProcess(
 			}
 		}
 
-		st, _, err := getState(stateKeyBalance(fact.pool, fact.poolCID, cid))
+		st, _, err := getState(extensioncurrency.StateKeyBalance(fact.pool, fact.poolID, cid, StateKeyBalanceSuffix))
 		if err != nil {
 			return nil, err
 		}
 
-		pb[cid] = currency.NewAmountState(st, cid)
+		pb[cid] = extensioncurrency.NewAmountState(st, cid, fact.poolID)
 	}
 	// pool account balance state before update
 	opp.pb = pb
@@ -372,7 +372,7 @@ func CalculateWithdrawFee(cp *extensioncurrency.CurrencyPool, fact WithdrawsFact
 		feeer, ok := v.(FeefiFeeer)
 		var k currency.Big
 		if ok {
-			st, err := existsState(StateKeyDesign(feeer.Feefier(), fact.poolCID), "feefi design", getState)
+			st, err := existsState(StateKeyDesign(feeer.Feefier(), fact.poolID), "feefi design", getState)
 			if err != nil {
 				return nil, err
 			}
@@ -403,55 +403,42 @@ func CalculateWithdrawFee(cp *extensioncurrency.CurrencyPool, fact WithdrawsFact
 }
 
 func UpdatePoolUserWithdraw(pool Pool, feefier base.Address, withdrawer base.Address, amounts []currency.Amount, getState func(key string) (state.State, bool, error)) (Pool, error) {
-	st, err := existsState(stateKeyBalance(feefier, pool.prevIncomeBalance.Currency(), pool.prevIncomeBalance.Currency()), " feefi pool balance", getState)
+	id := extensioncurrency.ContractID(pool.prevIncomeAmount.Currency().String())
+	st, err := existsState(extensioncurrency.StateKeyBalance(feefier, id, pool.prevIncomeAmount.Currency(), StateKeyBalanceSuffix), " feefi pool balance", getState)
 	if err != nil {
 		return Pool{}, err
 	}
-	currentIncomeBalance, err := stateBalanceValue(st)
+	currentIncomeBalance, err := extensioncurrency.StateBalanceValue(st)
 	if err != nil {
 		return Pool{}, err
 	}
-	st, err = existsState(stateKeyBalance(feefier, pool.prevIncomeBalance.Currency(), pool.prevOutlayBalance.Currency()), " feefi pool balance", getState)
+	st, err = existsState(extensioncurrency.StateKeyBalance(feefier, id, pool.prevOutlayAmount.Currency(), StateKeyBalanceSuffix), " feefi pool balance", getState)
 	if err != nil {
 		return Pool{}, err
 	}
-	currentOutlayBalance, err := stateBalanceValue(st)
+	currentOutlayBalance, err := extensioncurrency.StateBalanceValue(st)
 	if err != nil {
 		return Pool{}, err
 	}
-	prvIncomeBalance := pool.prevIncomeBalance
-	prvOutlayBalance := pool.prevOutlayBalance
+	prvIncomeBalance := pool.prevIncomeAmount
+	prvOutlayBalance := pool.prevOutlayAmount
 	// difference between previous balance and current balance
-	diffIncomeAmount := currentIncomeBalance.Big().Sub(prvIncomeBalance.Big())
-	diffOutlayAmount := currentOutlayBalance.Big().Sub(prvOutlayBalance.Big())
-	// fmt.Println("############################diffIncomeAmount")
-	// fmt.Println(diffIncomeAmount)
-	// fmt.Println("############################diffOutlayAmount")
-	// fmt.Println(diffOutlayAmount)
+	diffIncomeAmount := currentIncomeBalance.Amount().Big().Sub(prvIncomeBalance.Big())
+	diffOutlayAmount := currentOutlayBalance.Amount().Big().Sub(prvOutlayBalance.Big())
 	// sum of locking tokent
 	total := prvOutlayBalance
-	// fmt.Println("############################total")
-	// fmt.Println(total)
 	// calculate income and outlay of users
 	if total.Big().OverZero() {
 		for k := range pool.users {
 			c := pool.users[k]
-			// fmt.Println("############################c.outlayAmount")
-			// fmt.Println(c.outlayAmount.Big())
-			// fmt.Println("############################total")
-			// fmt.Println(total.Big())
-			foutlay := new(big.Float).SetInt(c.outlayAmount.Big().Int)
+			foutlay := new(big.Float).SetInt(c.outlay.Amount().Big().Int)
 			ftotal := new(big.Float).SetInt(total.Big().Int)
 			fratio := new(big.Float).Quo(foutlay, ftotal)
-			// fmt.Println("############################ratio")
-			// fmt.Println(fratio)
 			if !diffIncomeAmount.IsZero() {
 				fdiff := new(big.Float).SetInt(diffIncomeAmount.Int)
 				fcal := new(big.Float).Mul(fratio, fdiff)
 				ical, _ := fcal.Int(nil)
-				am := currency.NewAmount(currency.NewBigFromBigInt(ical), pool.prevIncomeBalance.Currency())
-				// fmt.Println("############################NewIncome")
-				// fmt.Println(am)
+				am := currency.NewAmount(currency.NewBigFromBigInt(ical), pool.prevIncomeAmount.Currency())
 				c.AddIncome(am)
 			}
 			if !diffOutlayAmount.IsZero() {
@@ -460,16 +447,13 @@ func UpdatePoolUserWithdraw(pool Pool, feefier base.Address, withdrawer base.Add
 				fcal := new(big.Float).Mul(fratio, fdiff)
 				nfcal := new(big.Float).Add(fcal, delta)
 				ical, _ := nfcal.Int(nil)
-				am := currency.NewAmount(currency.NewBigFromBigInt(ical), pool.prevOutlayBalance.Currency())
-				// fmt.Println("############################NewOutlay")
-				// fmt.Println(am)
+				am := currency.NewAmount(currency.NewBigFromBigInt(ical), pool.prevOutlayAmount.Currency())
 				c.AddOutlay(am)
 			}
 			pool.users[k] = c
 		}
 	}
 	// sub withdraw amount
-	// fmt.Println(withdrawer.String())
 	for i := range amounts {
 		am := amounts[i]
 		wb, _ := pool.users[withdrawer.String()]
@@ -477,28 +461,53 @@ func UpdatePoolUserWithdraw(pool Pool, feefier base.Address, withdrawer base.Add
 		case pool.IncomeBalance().Currency():
 			wb.SubIncome(am)
 			pool.users[withdrawer.String()] = wb
-			k := currentIncomeBalance.Big().Sub(am.Big())
-			if !k.OverNil() {
-				return Pool{}, errors.Errorf("under zero value, %q in currentIncomeBalance substraction", k)
+			currentIncomeBalance, err = currentIncomeBalance.Sub(am)
+			if err != nil {
+				return Pool{}, err
 			}
-			currentIncomeBalance = currency.NewAmount(k, pool.prevIncomeBalance.Currency())
 		case pool.OutlayBalance().Currency():
 			wb.SubOutlay(am)
 			pool.users[withdrawer.String()] = wb
-			k := currentOutlayBalance.Big().Sub(am.Big())
-			if !k.OverNil() {
-				return Pool{}, errors.Errorf("under zero value, %q in currentOutlayBalance substraction", k)
+			currentOutlayBalance, err = currentOutlayBalance.Sub(am)
+			if err != nil {
+				return Pool{}, err
 			}
-			currentOutlayBalance = currency.NewAmount(k, pool.prevOutlayBalance.Currency())
 		}
 	}
 
 	// update pool previous balance
-	pool.prevIncomeBalance = currentIncomeBalance
-	pool.prevOutlayBalance = currentOutlayBalance
-	// fmt.Println("############################pool")
-	// fmt.Println(pool.prevIncomeBalance)
-	// fmt.Println(pool.prevOutlayBalance)
-	// fmt.Println(pool.users)
+	pool.prevIncomeAmount = currentIncomeBalance.Amount()
+	pool.prevOutlayAmount = currentOutlayBalance.Amount()
 	return pool, nil
+}
+
+func CheckEnoughBalance(
+	holder base.Address,
+	id extensioncurrency.ContractID,
+	required map[currency.CurrencyID][2]currency.Big,
+	getState func(key string) (state.State, bool, error),
+) (map[currency.CurrencyID]extensioncurrency.AmountState, error) {
+	sb := map[currency.CurrencyID]extensioncurrency.AmountState{}
+
+	for cid := range required {
+		rq := required[cid]
+
+		st, err := existsState(extensioncurrency.StateKeyBalance(holder, id, cid, StateKeyBalanceSuffix), "currency of holder", getState)
+		if err != nil {
+			return nil, err
+		}
+
+		am, err := extensioncurrency.StateBalanceValue(st)
+		if err != nil {
+			return nil, operation.NewBaseReasonError("insufficient balance of sender: %w", err)
+		}
+
+		if am.Amount().Big().Compare(rq[0]) < 0 {
+			return nil, operation.NewBaseReasonError(
+				"insufficient balance of sender, %s; %d !> %d", holder.String(), am.Amount().Big(), rq[0])
+		}
+		sb[cid] = extensioncurrency.NewAmountState(st, cid, id)
+	}
+
+	return sb, nil
 }

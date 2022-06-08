@@ -1,6 +1,7 @@
 package feefi
 
 import (
+	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util/hint"
@@ -19,9 +20,9 @@ type DepositsItemSingleAmount struct {
 	BaseDepositsItem
 }
 
-func NewDepositsItemSingleAmount(receiver base.Address, cid currency.CurrencyID, amount currency.Amount) DepositsItemSingleAmount {
+func NewDepositsItemSingleAmount(receiver base.Address, id extensioncurrency.ContractID, amount currency.Amount) DepositsItemSingleAmount {
 	return DepositsItemSingleAmount{
-		BaseDepositsItem: NewBaseDepositsItem(DepositsItemSingleAmountHint, receiver, cid, []currency.Amount{amount}),
+		BaseDepositsItem: NewBaseDepositsItem(DepositsItemSingleAmountHint, receiver, id, []currency.Amount{amount}),
 	}
 }
 

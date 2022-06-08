@@ -1,30 +1,65 @@
 package digest
 
 import (
+	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
 	"github.com/ProtoconNet/mitum-feefi/feefi"
 	"github.com/pkg/errors"
-	"github.com/spikeekips/mitum-currency/currency"
+	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/state"
 	mongodbstorage "github.com/spikeekips/mitum/storage/mongodb"
 	"github.com/spikeekips/mitum/util/encoder"
 	bsonenc "github.com/spikeekips/mitum/util/encoder/bson"
 )
 
+type FeefiPoolValueDoc struct {
+	mongodbstorage.BaseDoc
+	va          FeefiPoolValue
+	feefipoolid string
+	height      base.Height
+}
+
+func NewFeefiPoolValueDoc(st state.State, enc encoder.Encoder) (FeefiPoolValueDoc, FeefiPoolDoc, error) {
+	if rs, err := NewFeefiPoolValue(st); err != nil {
+		return FeefiPoolValueDoc{}, FeefiPoolDoc{}, err
+	} else if b, err := mongodbstorage.NewBaseDoc(nil, rs, enc); err != nil {
+		return FeefiPoolValueDoc{}, FeefiPoolDoc{}, err
+	} else if pl, err := feefi.StatePoolValue(st); err != nil {
+		return FeefiPoolValueDoc{}, FeefiPoolDoc{}, errors.Wrap(err, "FeefiPoolDoc needs feefi pool state")
+	} else if b2, err := mongodbstorage.NewBaseDoc(nil, st, enc); err != nil {
+		return FeefiPoolValueDoc{}, FeefiPoolDoc{}, err
+	} else {
+		return FeefiPoolValueDoc{
+				BaseDoc:     b,
+				va:          rs,
+				feefipoolid: rs.PrevIncomeBalance().Currency().String(),
+				height:      rs.height,
+			},
+			FeefiPoolDoc{
+				BaseDoc: b2,
+				st:      st,
+				pl:      pl,
+			},
+			nil
+	}
+	return FeefiPoolValueDoc{}, FeefiPoolDoc{}, errors.Errorf("not feefi pool state, %q", st)
+}
+
+func (doc FeefiPoolValueDoc) MarshalBSON() ([]byte, error) {
+	m, err := doc.BaseDoc.M()
+	if err != nil {
+		return nil, err
+	}
+
+	m["feefipoolid"] = doc.feefipoolid
+	m["height"] = doc.height
+
+	return bsonenc.Marshal(m)
+}
+
 type FeefiPoolDoc struct {
 	mongodbstorage.BaseDoc
 	st state.State
-}
-
-func NewFeefiPoolDoc(st state.State, enc encoder.Encoder) (FeefiPoolDoc, error) {
-	b, err := mongodbstorage.NewBaseDoc(nil, st, enc)
-	if err != nil {
-		return FeefiPoolDoc{}, err
-	}
-
-	return FeefiPoolDoc{
-		BaseDoc: b,
-		st:      st,
-	}, nil
+	pl feefi.Pool
 }
 
 func (doc FeefiPoolDoc) MarshalBSON() ([]byte, error) {
@@ -33,7 +68,8 @@ func (doc FeefiPoolDoc) MarshalBSON() ([]byte, error) {
 		return nil, err
 	}
 
-	address := doc.st.Key()[:len(doc.st.Key())-len(feefi.StateKeyPoolSuffix)]
+	address := doc.st.Key()[:len(doc.st.Key())-len(feefi.StateKeyPoolSuffix)-len(doc.pl.IncomeBalance().Currency())-1]
+	m["feefipoolid"] = doc.pl.IncomeBalance().Currency().String()
 	m["address"] = address
 	m["height"] = doc.st.Height()
 
@@ -43,9 +79,15 @@ func (doc FeefiPoolDoc) MarshalBSON() ([]byte, error) {
 type FeefiDesignDoc struct {
 	mongodbstorage.BaseDoc
 	st state.State
+	de feefi.Design
 }
 
 func NewFeefiDesignDoc(st state.State, enc encoder.Encoder) (FeefiDesignDoc, error) {
+	de, err := feefi.StateDesignValue(st)
+	if err != nil {
+		return FeefiDesignDoc{}, errors.Wrap(err, "feefiDesignDoc needs feefi design state")
+	}
+
 	b, err := mongodbstorage.NewBaseDoc(nil, st, enc)
 	if err != nil {
 		return FeefiDesignDoc{}, err
@@ -54,6 +96,7 @@ func NewFeefiDesignDoc(st state.State, enc encoder.Encoder) (FeefiDesignDoc, err
 	return FeefiDesignDoc{
 		BaseDoc: b,
 		st:      st,
+		de:      de,
 	}, nil
 }
 
@@ -63,7 +106,8 @@ func (doc FeefiDesignDoc) MarshalBSON() ([]byte, error) {
 		return nil, err
 	}
 
-	address := doc.st.Key()[:len(doc.st.Key())-len(feefi.StateKeyDesignSuffix)]
+	address := doc.st.Key()[:len(doc.st.Key())-len(feefi.StateKeyDesignSuffix)-len(doc.de.Fee().Currency())-1]
+	m["feefipoolid"] = doc.de.Fee().Currency().String()
 	m["address"] = address
 	m["height"] = doc.st.Height()
 
@@ -73,12 +117,12 @@ func (doc FeefiDesignDoc) MarshalBSON() ([]byte, error) {
 type FeefiBalanceDoc struct {
 	mongodbstorage.BaseDoc
 	st state.State
-	am currency.Amount
+	am extensioncurrency.AmountValue
 }
 
-// NewBalanceDoc gets the State of Amount
+// NewFeefiBalanceDoc gets the State of feefi pool balance amount
 func NewFeefiBalanceDoc(st state.State, enc encoder.Encoder) (FeefiBalanceDoc, error) {
-	am, err := currency.StateBalanceValue(st)
+	am, err := extensioncurrency.StateBalanceValue(st)
 	if err != nil {
 		return FeefiBalanceDoc{}, errors.Wrap(err, "feefibalanceDoc needs Amount state")
 	}
@@ -101,9 +145,11 @@ func (doc FeefiBalanceDoc) MarshalBSON() ([]byte, error) {
 		return nil, err
 	}
 
-	address := doc.st.Key()[:len(doc.st.Key())-len(feefi.StateKeyBalanceSuffix)-len(doc.am.Currency())-len(doc.am.Currency())-2]
+	address := doc.st.Key()[:len(doc.st.Key())-len(feefi.StateKeyBalanceSuffix)-len(doc.am.Amount().Currency())-len(doc.am.ID())-2]
+
 	m["address"] = address
-	m["currency"] = doc.am.Currency().String()
+	m["feefipoolid"] = doc.am.ID().String()
+	m["currency"] = doc.am.Amount().Currency().String()
 	m["height"] = doc.st.Height()
 
 	return bsonenc.Marshal(m)

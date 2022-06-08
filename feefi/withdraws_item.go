@@ -1,6 +1,7 @@
 package feefi
 
 import (
+	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util"
@@ -11,15 +12,15 @@ import (
 type BaseWithdrawsItem struct {
 	hint.BaseHinter
 	target  base.Address
-	poolCID currency.CurrencyID
+	poolID  extensioncurrency.ContractID
 	amounts []currency.Amount
 }
 
-func NewBaseWithdrawsItem(ht hint.Hint, target base.Address, poolCID currency.CurrencyID, amounts []currency.Amount) BaseWithdrawsItem {
+func NewBaseWithdrawsItem(ht hint.Hint, target base.Address, id extensioncurrency.ContractID, amounts []currency.Amount) BaseWithdrawsItem {
 	return BaseWithdrawsItem{
 		BaseHinter: hint.NewBaseHinter(ht),
 		target:     target,
-		poolCID:    poolCID,
+		poolID:     id,
 		amounts:    amounts,
 	}
 }
@@ -28,7 +29,7 @@ func (it BaseWithdrawsItem) Bytes() []byte {
 	length := 2
 	bs := make([][]byte, len(it.amounts)+length)
 	bs[0] = it.target.Bytes()
-	bs[1] = it.poolCID.Bytes()
+	bs[1] = it.poolID.Bytes()
 
 	for i := range it.amounts {
 		bs[i+length] = it.amounts[i].Bytes()
@@ -38,7 +39,7 @@ func (it BaseWithdrawsItem) Bytes() []byte {
 }
 
 func (it BaseWithdrawsItem) IsValid([]byte) error {
-	err := isvalid.Check(nil, false, it.target, it.poolCID)
+	err := isvalid.Check(nil, false, it.target, it.poolID)
 	if err != nil {
 		return err
 	}
@@ -69,8 +70,8 @@ func (it BaseWithdrawsItem) Target() base.Address {
 	return it.target
 }
 
-func (it BaseWithdrawsItem) PoolCID() currency.CurrencyID {
-	return it.poolCID
+func (it BaseWithdrawsItem) PoolID() extensioncurrency.ContractID {
+	return it.poolID
 }
 
 func (it BaseWithdrawsItem) Amounts() []currency.Amount {

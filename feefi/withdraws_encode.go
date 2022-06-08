@@ -1,6 +1,7 @@
 package feefi
 
 import (
+	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util"
@@ -20,7 +21,7 @@ func (it *BaseWithdrawsItem) unpack(
 	}
 	it.target = a
 
-	it.poolCID = currency.CurrencyID(spi)
+	it.poolID = extensioncurrency.ContractID(spi)
 
 	ham, err := enc.DecodeSlice(bam)
 	if err != nil {
@@ -48,7 +49,7 @@ func (fact *WithdrawsFact) unpack(
 	token []byte,
 	bSender base.AddressDecoder,
 	bPool base.AddressDecoder,
-	sci string,
+	spi string,
 	bam []byte,
 ) error {
 	sender, err := bSender.Encode(enc)
@@ -80,7 +81,7 @@ func (fact *WithdrawsFact) unpack(
 	fact.token = token
 	fact.sender = sender
 	fact.pool = pool
-	fact.poolCID = currency.CurrencyID(sci)
+	fact.poolID = extensioncurrency.ContractID(spi)
 	fact.amounts = amounts
 
 	return nil

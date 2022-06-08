@@ -1,6 +1,7 @@
 package feefi
 
 import (
+	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util/hint"
@@ -21,9 +22,9 @@ type WithdrawsItemMultiAmounts struct {
 	BaseWithdrawsItem
 }
 
-func NewWithdrawsItemMultiAmounts(receiver base.Address, cid currency.CurrencyID, amounts []currency.Amount) WithdrawsItemMultiAmounts {
+func NewWithdrawsItemMultiAmounts(receiver base.Address, id extensioncurrency.ContractID, amounts []currency.Amount) WithdrawsItemMultiAmounts {
 	return WithdrawsItemMultiAmounts{
-		BaseWithdrawsItem: NewBaseWithdrawsItem(WithdrawsItemMultiAmountsHint, receiver, cid, amounts),
+		BaseWithdrawsItem: NewBaseWithdrawsItem(WithdrawsItemMultiAmountsHint, receiver, id, amounts),
 	}
 }
 

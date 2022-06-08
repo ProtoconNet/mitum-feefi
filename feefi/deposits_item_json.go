@@ -3,6 +3,7 @@ package feefi
 import (
 	"encoding/json"
 
+	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	jsonenc "github.com/spikeekips/mitum/util/encoder/json"
@@ -10,23 +11,23 @@ import (
 
 type DepositsItemJSONPacker struct {
 	jsonenc.HintedHead
-	RC base.Address        `json:"pool"`
-	PI currency.CurrencyID `json:"poolcid"`
-	AM []currency.Amount   `json:"amounts"`
+	RC base.Address                 `json:"pool"`
+	PI extensioncurrency.ContractID `json:"poolid"`
+	AM []currency.Amount            `json:"amounts"`
 }
 
 func (it BaseDepositsItem) MarshalJSON() ([]byte, error) {
 	return jsonenc.Marshal(DepositsItemJSONPacker{
 		HintedHead: jsonenc.NewHintedHead(it.Hint()),
 		RC:         it.pool,
-		PI:         it.poolcid,
+		PI:         it.poolID,
 		AM:         it.amounts,
 	})
 }
 
 type BaseDepositsItemJSONUnpacker struct {
 	RC base.AddressDecoder `json:"pool"`
-	PI string              `json:"poolcid"`
+	PI string              `json:"poolid"`
 	AM json.RawMessage     `json:"amounts"`
 }
 

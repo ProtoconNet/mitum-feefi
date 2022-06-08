@@ -80,9 +80,10 @@ func (opp *KeyUpdaterProcessor) PreProcess(
 	// 수정
 	feeer, ok := f.(feefi.FeefiFeeer)
 	cid := fact.Currency()
+	id := extensioncurrency.ContractID(cid.String())
 	var fee currency.Big
 	if ok {
-		st, err := existsState(feefi.StateKeyDesign(feeer.Feefier(), cid), "feefi design", getState)
+		st, err := existsState(feefi.StateKeyDesign(feeer.Feefier(), id), "feefi design", getState)
 		if err != nil {
 			return nil, operation.NewBaseReasonErrorFromError(err)
 		}

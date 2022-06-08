@@ -1,6 +1,7 @@
 package feefi
 
 import (
+	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
 	"github.com/spikeekips/mitum-currency/currency"
 	jsonenc "github.com/spikeekips/mitum/util/encoder/json"
 	"github.com/spikeekips/mitum/util/hint"
@@ -18,8 +19,8 @@ func (pl Pool) MarshalJSON() ([]byte, error) {
 	return jsonenc.Marshal(PoolJSONPacker{
 		HintedHead: jsonenc.NewHintedHead(pl.Hint()),
 		US:         pl.users,
-		PI:         pl.prevIncomeBalance,
-		PO:         pl.prevOutlayBalance,
+		PI:         pl.prevIncomeAmount,
+		PO:         pl.prevOutlayAmount,
 	})
 }
 
@@ -41,15 +42,15 @@ func (pl Pool) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
 
 type PoolUserBalanceJSONPacker struct {
 	jsonenc.HintedHead
-	PI currency.Amount `json:"incomeamount"`
-	PO currency.Amount `json:"outlayamount"`
+	PI extensioncurrency.AmountValue `json:"incomeamount"`
+	PO extensioncurrency.AmountValue `json:"outlayamount"`
 }
 
 func (pl PoolUserBalance) MarshalJSON() ([]byte, error) {
 	return jsonenc.Marshal(PoolUserBalanceJSONPacker{
 		HintedHead: jsonenc.NewHintedHead(pl.Hint()),
-		PI:         pl.incomeAmount,
-		PO:         pl.outlayAmount,
+		PI:         pl.income,
+		PO:         pl.outlay,
 	})
 }
 

@@ -3,6 +3,7 @@ package feefi
 import (
 	"encoding/json"
 
+	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	jsonenc "github.com/spikeekips/mitum/util/encoder/json"
@@ -11,12 +12,12 @@ import (
 
 type WithdrawsFactJSONPacker struct {
 	jsonenc.HintedHead
-	H  valuehash.Hash      `json:"hash"`
-	TK []byte              `json:"token"`
-	SD base.Address        `json:"sender"`
-	PL base.Address        `json:"pool"`
-	CI currency.CurrencyID `json:"poolcid"`
-	AM []currency.Amount   `json:"amounts"`
+	H  valuehash.Hash               `json:"hash"`
+	TK []byte                       `json:"token"`
+	SD base.Address                 `json:"sender"`
+	PL base.Address                 `json:"pool"`
+	PI extensioncurrency.ContractID `json:"poolid"`
+	AM []currency.Amount            `json:"amounts"`
 }
 
 func (fact WithdrawsFact) MarshalJSON() ([]byte, error) {
@@ -26,7 +27,7 @@ func (fact WithdrawsFact) MarshalJSON() ([]byte, error) {
 		TK:         fact.token,
 		SD:         fact.sender,
 		PL:         fact.pool,
-		CI:         fact.poolCID,
+		PI:         fact.poolID,
 		AM:         fact.amounts,
 	})
 }
@@ -37,14 +38,14 @@ func (fact *WithdrawsFact) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
 		TK []byte              `json:"token"`
 		SD base.AddressDecoder `json:"sender"`
 		PL base.AddressDecoder `json:"pool"`
-		CI string              `json:"poolcid"`
+		PI string              `json:"poolid"`
 		AM json.RawMessage     `json:"amounts"`
 	}
 	if err := jsonenc.Unmarshal(b, &ufact); err != nil {
 		return err
 	}
 
-	return fact.unpack(enc, ufact.H, ufact.TK, ufact.SD, ufact.PL, ufact.CI, ufact.AM)
+	return fact.unpack(enc, ufact.H, ufact.TK, ufact.SD, ufact.PL, ufact.PI, ufact.AM)
 }
 
 func (op *Withdraws) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {

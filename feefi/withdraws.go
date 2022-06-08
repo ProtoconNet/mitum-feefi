@@ -1,6 +1,7 @@
 package feefi
 
 import (
+	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util"
@@ -29,7 +30,7 @@ type WithdrawsItem interface {
 	currency.AmountsItem
 	Bytes() []byte
 	Target() base.Address
-	PoolCID() currency.CurrencyID
+	PoolID() extensioncurrency.ContractID
 	Rebuild() WithdrawsItem
 }
 
@@ -39,17 +40,17 @@ type WithdrawsFact struct {
 	token   []byte
 	sender  base.Address
 	pool    base.Address
-	poolCID currency.CurrencyID
+	poolID  extensioncurrency.ContractID
 	amounts []currency.Amount
 }
 
-func NewWithdrawsFact(token []byte, sender base.Address, pool base.Address, poolCID currency.CurrencyID, amounts []currency.Amount) WithdrawsFact {
+func NewWithdrawsFact(token []byte, sender base.Address, pool base.Address, id extensioncurrency.ContractID, amounts []currency.Amount) WithdrawsFact {
 	fact := WithdrawsFact{
 		BaseHinter: hint.NewBaseHinter(WithdrawsFactHint),
 		token:      token,
 		sender:     sender,
 		pool:       pool,
-		poolCID:    poolCID,
+		poolID:     id,
 		amounts:    amounts,
 	}
 	fact.h = fact.GenerateHash()
@@ -75,7 +76,7 @@ func (fact WithdrawsFact) Bytes() []byte {
 	bs[0] = fact.token
 	bs[1] = fact.sender.Bytes()
 	bs[2] = fact.pool.Bytes()
-	bs[3] = fact.poolCID.Bytes()
+	bs[3] = fact.poolID.Bytes()
 	for i := range fact.amounts {
 		bs[i+length] = fact.amounts[i].Bytes()
 	}
@@ -94,7 +95,7 @@ func (fact WithdrawsFact) IsValid(b []byte) error {
 		return isvalid.InvalidError.Errorf("amounts, %d over max, %d", n, MaxWithdrawsAmount)
 	}
 
-	if err := isvalid.Check(nil, false, fact.sender, fact.pool, fact.poolCID); err != nil {
+	if err := isvalid.Check(nil, false, fact.sender, fact.pool, fact.poolID); err != nil {
 		return err
 	}
 
@@ -125,8 +126,8 @@ func (fact WithdrawsFact) Pool() base.Address {
 	return fact.pool
 }
 
-func (fact WithdrawsFact) PoolCID() currency.CurrencyID {
-	return fact.poolCID
+func (fact WithdrawsFact) PoolID() extensioncurrency.ContractID {
+	return fact.poolID
 }
 
 func (fact WithdrawsFact) Amounts() []currency.Amount {

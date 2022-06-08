@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ProtoconNet/mitum-feefi/feefi"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/spikeekips/mitum-currency/currency"
@@ -41,6 +42,18 @@ func IsBalanceState(st state.State) (currency.Amount, bool, error) {
 		return currency.Amount{}, false, err
 	}
 	return am, true, nil
+}
+
+func IsFeefiPoolState(st state.State) (feefi.Pool, bool, error) {
+	if !feefi.IsStatePoolKey(st.Key()) {
+		return feefi.Pool{}, false, nil
+	}
+
+	fp, err := feefi.StatePoolValue(st)
+	if err != nil {
+		return feefi.Pool{}, false, err
+	}
+	return fp, true, nil
 }
 
 func parseHeightFromPath(s string) (base.Height, error) {

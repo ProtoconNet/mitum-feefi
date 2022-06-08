@@ -1,6 +1,7 @@
 package feefi
 
 import (
+	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util"
@@ -25,28 +26,28 @@ type DepositsItem interface {
 	isvalid.IsValider
 	currency.AmountsItem
 	Bytes() []byte
-	PoolCID() currency.CurrencyID
+	PoolID() extensioncurrency.ContractID
 	Pool() base.Address
 	Rebuild() DepositsItem
 }
 
 type DepositFact struct {
 	hint.BaseHinter
-	h       valuehash.Hash
-	token   []byte
-	sender  base.Address
-	pool    base.Address
-	poolCID currency.CurrencyID
-	amount  currency.Amount
+	h      valuehash.Hash
+	token  []byte
+	sender base.Address
+	pool   base.Address
+	poolID extensioncurrency.ContractID
+	amount currency.Amount
 }
 
-func NewDepositFact(token []byte, sender base.Address, pool base.Address, cid currency.CurrencyID, amount currency.Amount) DepositFact {
+func NewDepositFact(token []byte, sender base.Address, pool base.Address, id extensioncurrency.ContractID, amount currency.Amount) DepositFact {
 	fact := DepositFact{
 		BaseHinter: hint.NewBaseHinter(DepositFactHint),
 		token:      token,
 		sender:     sender,
 		pool:       pool,
-		poolCID:    cid,
+		poolID:     id,
 		amount:     amount,
 	}
 	fact.h = fact.GenerateHash()
@@ -71,7 +72,7 @@ func (fact DepositFact) Bytes() []byte {
 		fact.token,
 		fact.sender.Bytes(),
 		fact.pool.Bytes(),
-		fact.poolCID.Bytes(),
+		fact.poolID.Bytes(),
 		fact.amount.Bytes(),
 	)
 }
@@ -81,7 +82,7 @@ func (fact DepositFact) IsValid(b []byte) error {
 		return err
 	}
 
-	if err := isvalid.Check(nil, false, fact.sender, fact.pool, fact.poolCID); err != nil {
+	if err := isvalid.Check(nil, false, fact.sender, fact.pool, fact.poolID); err != nil {
 		return err
 	}
 
@@ -99,8 +100,8 @@ func (fact DepositFact) Sender() base.Address {
 	return fact.sender
 }
 
-func (fact DepositFact) PoolCID() currency.CurrencyID {
-	return fact.poolCID
+func (fact DepositFact) PoolID() extensioncurrency.ContractID {
+	return fact.poolID
 }
 
 func (fact DepositFact) Pool() base.Address {

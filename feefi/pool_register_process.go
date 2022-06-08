@@ -27,12 +27,12 @@ func (PoolRegister) Process(
 type PoolRegisterProcessor struct {
 	cp *extensioncurrency.CurrencyPool
 	PoolRegister
-	cs  state.State          // contract account status state
-	ds  state.State          // feefi design state
-	ps  state.State          // feefi pool state
-	sb  currency.AmountState // sender amount state
-	ib  currency.AmountState // target incoming amount state
-	ob  currency.AmountState // target outgoing amount state
+	cs  state.State                   // contract account status state
+	ds  state.State                   // feefi design state
+	ps  state.State                   // feefi pool state
+	sb  currency.AmountState          // sender amount state
+	ib  extensioncurrency.AmountState // target incoming amount state
+	ob  extensioncurrency.AmountState // target outgoing amount state
 	fee currency.Big
 	as  extensioncurrency.ContractAccount // contract account status value
 	pl  Pool                              // feefi pool value
@@ -54,8 +54,8 @@ func NewPoolRegisterProcessor(cp *extensioncurrency.CurrencyPool) currency.GetNe
 		opp.ds = nil
 		opp.ps = nil
 		opp.sb = currency.AmountState{}
-		opp.ib = currency.AmountState{}
-		opp.ob = currency.AmountState{}
+		opp.ib = extensioncurrency.AmountState{}
+		opp.ob = extensioncurrency.AmountState{}
 		opp.fee = currency.ZeroBig
 		opp.as = extensioncurrency.ContractAccount{}
 		opp.pl = Pool{}
@@ -107,7 +107,8 @@ func (opp *PoolRegisterProcessor) PreProcess(
 
 	// check target don't have pool state
 	// keep pool state of target
-	st, err = notExistsState(StateKeyPool(fact.target, fact.IncomeCID()), "pool of target", getState)
+	id := extensioncurrency.ContractID(fact.IncomeCID())
+	st, err = notExistsState(StateKeyPool(fact.target, id), "pool of target", getState)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +120,7 @@ func (opp *PoolRegisterProcessor) PreProcess(
 
 	// check target don't have design state
 	// keep design state of target
-	st, err = notExistsState(StateKeyDesign(fact.target, fact.IncomeCID()), "design of target", getState)
+	st, err = notExistsState(StateKeyDesign(fact.target, id), "design of target", getState)
 	if err != nil {
 		return nil, err
 	}
@@ -128,19 +129,19 @@ func (opp *PoolRegisterProcessor) PreProcess(
 
 	// check target don't have incoming amount state
 	// keep incoming amount state of target
-	st, err = notExistsState(stateKeyBalance(fact.target, fact.IncomeCID(), fact.IncomeCID()), "incoming balance of target", getState)
+	st, err = notExistsState(extensioncurrency.StateKeyBalance(fact.target, id, fact.IncomeCID(), StateKeyBalanceSuffix), "incoming balance of target", getState)
 	if err != nil {
 		return nil, err
 	}
-	opp.ib = currency.NewAmountState(st, fact.IncomeCID())
+	opp.ib = extensioncurrency.NewAmountState(st, fact.IncomeCID(), id)
 
 	// check target don't have outgoing amount state
 	// keep outgoing amount state of target
-	st, err = notExistsState(stateKeyBalance(fact.target, fact.IncomeCID(), fact.OutlayCID()), "outgoing balance of target", getState)
+	st, err = notExistsState(extensioncurrency.StateKeyBalance(fact.target, id, fact.OutlayCID(), StateKeyBalanceSuffix), "outgoing balance of target", getState)
 	if err != nil {
 		return nil, err
 	}
-	opp.ob = currency.NewAmountState(st, fact.OutlayCID())
+	opp.ob = extensioncurrency.NewAmountState(st, fact.OutlayCID(), id)
 
 	// check fact sign
 	if err = checkFactSignsByState(fact.sender, opp.Signs(), getState); err != nil {
@@ -187,8 +188,9 @@ func (opp *PoolRegisterProcessor) Process(
 	if err != nil {
 		return operation.NewBaseReasonErrorFromError(err)
 	}
-	ibst, err := setStateBalanceValue(opp.ib, currency.NewZeroAmount(fact.IncomeCID()))
-	obst, err := setStateBalanceValue(opp.ob, currency.NewZeroAmount(fact.OutlayCID()))
+	id := extensioncurrency.ContractID(fact.incomeCID.String())
+	ibst, err := extensioncurrency.SetStateBalanceValue(opp.ib, extensioncurrency.NewAmountValuefromAmount(currency.NewZeroAmount(fact.incomeCID), id))
+	obst, err := extensioncurrency.SetStateBalanceValue(opp.ob, extensioncurrency.NewAmountValuefromAmount(currency.NewZeroAmount(fact.outlayCID), id))
 	return setState(fact.Hash(), pst, dst, ibst, obst, opp.sb)
 }
 
@@ -199,8 +201,8 @@ func (opp *PoolRegisterProcessor) Close() error {
 	opp.ds = nil
 	opp.ps = nil
 	opp.sb = currency.AmountState{}
-	opp.ib = currency.AmountState{}
-	opp.ob = currency.AmountState{}
+	opp.ib = extensioncurrency.AmountState{}
+	opp.ob = extensioncurrency.AmountState{}
 	opp.fee = currency.ZeroBig
 	opp.as = extensioncurrency.ContractAccount{}
 	opp.pl = Pool{}

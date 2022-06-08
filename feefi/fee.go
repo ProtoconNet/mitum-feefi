@@ -180,7 +180,7 @@ func (opp *FeeOperationProcessor) Process(
 	// AmountState map of fee receiver
 	rb := make(map[string]currency.AmountState)
 	// AmountState map of feefier
-	fb := make(map[string]currency.AmountState)
+	fb := make(map[string]extensioncurrency.AmountState)
 	for i := range fact.amounts {
 		am := fact.amounts[i]
 		var feeer Feeer
@@ -225,10 +225,11 @@ func (opp *FeeOperationProcessor) Process(
 			if err := checkExistsState(currency.StateKeyAccount(v.Feefier()), getState); err != nil {
 				return err
 			} else if amountst, found := fb[am.Currency().String()+am.Currency().String()]; !found {
-				if st, _, err := getState(stateKeyBalance(v.Feefier(), am.Currency(), am.Currency())); err != nil {
+				id := extensioncurrency.ContractID(am.Currency())
+				if st, _, err := getState(extensioncurrency.StateKeyBalance(v.Feefier(), id, am.Currency(), StateKeyBalanceSuffix)); err != nil {
 					return err
 				} else {
-					ra := currency.NewAmountState(st, am.Currency())
+					ra := extensioncurrency.NewAmountState(st, am.Currency(), id)
 					nra := ra.Add(am.Big())
 					fb[am.Currency().String()+am.Currency().String()] = nra
 				}
@@ -260,10 +261,11 @@ func (opp *FeeOperationProcessor) Process(
 			}
 
 			if amountst, found := fb[am.Currency().String()+v.ExchangeCID().String()]; !found {
-				if st, _, err := getState(stateKeyBalance(v.Feefier(), am.Currency(), v.ExchangeCID())); err != nil {
+				id := extensioncurrency.ContractID(am.Currency().String())
+				if st, _, err := getState(extensioncurrency.StateKeyBalance(v.Feefier(), id, v.ExchangeCID(), StateKeyBalanceSuffix)); err != nil {
 					return err
 				} else {
-					sa := currency.NewAmountState(st, v.ExchangeCID())
+					sa := extensioncurrency.NewAmountState(st, v.ExchangeCID(), id)
 					nsa := sa.Sub(v.ExchangeMin())
 					fb[am.Currency().String()+v.ExchangeCID().String()] = nsa
 				}

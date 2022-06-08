@@ -39,11 +39,11 @@ var (
 	HandlerPathOperationsByHeight         = `/block/{height:[0-9]+}/operations`
 	HandlerPathManifestByHeight           = `/block/{height:[0-9]+}/manifest`
 	HandlerPathManifestByHash             = `/block/{hash:(?i)[0-9a-z][0-9a-z]+}/manifest`
-	HandlerPathAccount                    = `/account/{address:(?i)` + base.REStringAddressString + `}`                       // revive:disable-line:line-length-limit
-	HandlerPathAccountOperations          = `/account/{address:(?i)` + base.REStringAddressString + `}/operations`            // revive:disable-line:line-length-limit
-	HandlerPathAccountFeefi               = `/account/{address:(?i)` + base.REStringAddressString + `}/feefi/{currencyid:.*}` // revive:disable-line:line-length-limit
+	HandlerPathAccount                    = `/account/{address:(?i)` + base.REStringAddressString + `}`                        // revive:disable-line:line-length-limit
+	HandlerPathAccountOperations          = `/account/{address:(?i)` + base.REStringAddressString + `}/operations`             // revive:disable-line:line-length-limit
+	HandlerPathAccountFeefi               = `/account/{address:(?i)` + base.REStringAddressString + `}/feefi/{feefipoolid:.*}` // revive:disable-line:line-length-limit
 	HandlerPathAccounts                   = `/accounts`
-	HandlerPathFeefi                      = `/feefi/{currencyid:.*}`
+	HandlerPathFeefi                      = `/feefi/{feefipoolid:.*}`
 	HandlerPathOperationBuildFactTemplate = `/builder/operation/fact/template/{fact:[\w][\w\-]*}`
 	HandlerPathOperationBuildFact         = `/builder/operation/fact`
 	HandlerPathOperationBuildSign         = `/builder/operation/sign`
@@ -65,7 +65,9 @@ var RateLimitHandlerMap = map[string]string{
 	"block-manifest-by-hash":          HandlerPathManifestByHash,
 	"account":                         HandlerPathAccount,
 	"account-operations":              HandlerPathAccountOperations,
+	"account-feefi-pool-balance":      HandlerPathAccountFeefi,
 	"accounts":                        HandlerPathAccounts,
+	"feefi":                           HandlerPathFeefi,
 	"builder-operation-fact-template": HandlerPathOperationBuildFactTemplate,
 	"builder-operation-fact":          HandlerPathOperationBuildFact,
 	"builder-operation-sign":          HandlerPathOperationBuildSign,
@@ -191,7 +193,11 @@ func (hd *Handlers) setHandlers() {
 		Methods(http.MethodOptions, "GET")
 	hd.setHandler(HandlerPathAccountOperations, hd.handleAccountOperations, true).
 		Methods(http.MethodOptions, "GET")
+	hd.setHandler(HandlerPathAccountFeefi, hd.handleAccountFeefi, true).
+		Methods(http.MethodOptions, "GET")
 	hd.setHandler(HandlerPathAccounts, hd.handleAccounts, true).
+		Methods(http.MethodOptions, "GET")
+	hd.setHandler(HandlerPathFeefi, hd.handleFeefi, true).
 		Methods(http.MethodOptions, "GET")
 	hd.setHandler(HandlerPathOperationBuildFactTemplate, hd.handleOperationBuildFactTemplate, true).
 		Methods(http.MethodOptions, "GET")

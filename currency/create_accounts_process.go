@@ -259,9 +259,10 @@ func CalculateItemsFee(cp *extensioncurrency.CurrencyPool, items []currency.Amou
 			}
 			// 수정
 			feeer, ok := f.(feefi.FeefiFeeer)
+			id := extensioncurrency.ContractID(am.Currency().String())
 			var k currency.Big
 			if ok {
-				st, err := existsState(feefi.StateKeyDesign(feeer.Feefier(), am.Currency()), "feefi design", getState)
+				st, err := existsState(feefi.StateKeyDesign(feeer.Feefier(), id), "feefi design", getState)
 				if err != nil {
 					return nil, err
 				}

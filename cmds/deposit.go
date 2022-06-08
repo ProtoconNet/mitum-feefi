@@ -1,9 +1,9 @@
 package cmds
 
 import (
+	extensioncmds "github.com/ProtoconNet/mitum-currency-extension/cmds"
 	"github.com/ProtoconNet/mitum-feefi/feefi"
 	"github.com/pkg/errors"
-
 	currencycmds "github.com/spikeekips/mitum-currency/cmds"
 	currency "github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
@@ -15,14 +15,14 @@ import (
 type DepositCommand struct {
 	*BaseCommand
 	OperationFlags
-	Sender   AddressFlag                     `arg:"" name:"sender" help:"sender address" required:"true"`
-	Pool     AddressFlag                     `arg:"" name:"pool-address" help:"feefi pool address" required:"true"`
-	Currency currencycmds.CurrencyIDFlag     `arg:"" name:"currency-id" help:"feefi pool currency id" required:"true"`
-	Seal     mitumcmds.FileLoad              `help:"seal" optional:""`
-	Amount   currencycmds.CurrencyAmountFlag `arg:"" name:"currency-amount" help:"amount (ex: \"<currency>,<amount>\")"`
-	sender   base.Address
-	pool     base.Address
-	cid      currency.CurrencyID
+	Sender AddressFlag                     `arg:"" name:"sender" help:"sender address" required:"true"`
+	Pool   AddressFlag                     `arg:"" name:"pool-address" help:"feefi pool address" required:"true"`
+	PoolID extensioncmds.ContractIDFlag    `arg:"" name:"pool-id" help:"feefi pool currency id" required:"true"`
+	Seal   mitumcmds.FileLoad              `help:"seal" optional:""`
+	Amount currencycmds.CurrencyAmountFlag `arg:"" name:"currency-amount" help:"amount (ex: \"<currency>,<amount>\")"`
+	sender base.Address
+	pool   base.Address
+	cid    currency.CurrencyID
 }
 
 func NewDepositCommand() DepositCommand {
@@ -78,7 +78,7 @@ func (cmd *DepositCommand) parseFlags() error {
 
 func (cmd *DepositCommand) createOperation() (operation.Operation, error) { // nolint:dupl
 	am := currency.NewAmount(cmd.Amount.Big, cmd.Amount.CID)
-	fact := feefi.NewDepositFact([]byte(cmd.Token), cmd.sender, cmd.pool, cmd.Currency.CID, am)
+	fact := feefi.NewDepositFact([]byte(cmd.Token), cmd.sender, cmd.pool, cmd.PoolID.ID, am)
 
 	var fs []base.FactSign
 	sig, err := base.NewFactSignature(cmd.Privatekey, fact, cmd.NetworkID.NetworkID())
