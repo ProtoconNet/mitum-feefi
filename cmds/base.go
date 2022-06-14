@@ -169,6 +169,8 @@ func AttachProposalProcessor(
 		return nil, err
 	} else if _, err := opr.SetProcessor(feefi.PoolRegisterHinter, feefi.NewPoolRegisterProcessor(cp)); err != nil {
 		return nil, err
+	} else if _, err := opr.SetProcessor(feefi.PoolPolicyUpdaterHinter, feefi.NewPoolPolicyUpdaterProcessor(cp)); err != nil {
+		return nil, err
 	}
 
 	threshold, err := base.NewThreshold(uint(len(suffrage.Nodes())), policy.ThresholdRatio())
@@ -233,6 +235,7 @@ func InitializeProposalProcessor(ctx context.Context, opr *operation.OperationPr
 		feefi.DepositHinter,
 		feefi.WithdrawsHinter,
 		feefi.PoolRegisterHinter,
+		feefi.PoolPolicyUpdaterHinter,
 	} {
 		if err := oprs.Add(hinter, opr); err != nil {
 			return ctx, err

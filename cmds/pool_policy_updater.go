@@ -1,6 +1,7 @@
 package cmds
 
 import (
+	extensioncmds "github.com/ProtoconNet/mitum-currency-extension/cmds"
 	"github.com/ProtoconNet/mitum-feefi/feefi"
 	"github.com/pkg/errors"
 	currencycmds "github.com/spikeekips/mitum-currency/cmds"
@@ -10,26 +11,25 @@ import (
 	"github.com/spikeekips/mitum/util"
 )
 
-type PoolRegisterCommand struct {
+type PoolPolicyUpdaterCommand struct {
 	*BaseCommand
 	OperationFlags
-	Sender         AddressFlag                     `arg:"" name:"sender" help:"sender address" required:"true"`
-	Pool           currencycmds.AddressFlag        `arg:"" name:"pool" help:"pool address" required:"true"`
-	IncomeCurrency currencycmds.CurrencyIDFlag     `arg:"" name:"income-fee-currency-id" help:"income fee currency id" required:"true"`
-	OutlayCurrency currencycmds.CurrencyIDFlag     `arg:"" name:"outlay-fee-currency-id" help:"outlay fee currency id" required:"true"`
-	InitialFee     currencycmds.CurrencyAmountFlag `arg:"" name:"initial-fee" help:"initial fee amount" required:"true"`
-	Currency       currencycmds.CurrencyIDFlag     `arg:"" name:"currency-id" help:"currency id" required:"true"`
-	sender         base.Address
-	pool           base.Address
+	Sender   AddressFlag                     `arg:"" name:"sender" help:"sender address" required:"true"`
+	Pool     currencycmds.AddressFlag        `arg:"" name:"pool" help:"pool address" required:"true"`
+	PoolID   extensioncmds.ContractIDFlag    `arg:"" name:"feefi-pool-id" help:"feefi pool id" required:"true"`
+	Fee      currencycmds.CurrencyAmountFlag `arg:"" name:"fee" help:"fee amount" required:"true"`
+	Currency currencycmds.CurrencyIDFlag     `arg:"" name:"currency-id" help:"currency id" required:"true"`
+	sender   base.Address
+	pool     base.Address
 }
 
-func NewPoolRegisterCommand() PoolRegisterCommand {
-	return PoolRegisterCommand{
-		BaseCommand: NewBaseCommand("pool-register-operation"),
+func NewPoolPolicyUpdaterCommand() PoolPolicyUpdaterCommand {
+	return PoolPolicyUpdaterCommand{
+		BaseCommand: NewBaseCommand("pool-policy-updater-operation"),
 	}
 }
 
-func (cmd *PoolRegisterCommand) Run(version util.Version) error { // nolint:dupl
+func (cmd *PoolPolicyUpdaterCommand) Run(version util.Version) error { // nolint:dupl
 	if err := cmd.Initialize(cmd, version); err != nil {
 		return errors.Wrap(err, "failed to initialize command")
 	}
@@ -40,9 +40,9 @@ func (cmd *PoolRegisterCommand) Run(version util.Version) error { // nolint:dupl
 
 	var op operation.Operation
 	if i, err := cmd.createOperation(); err != nil {
-		return errors.Wrap(err, "failed to create pool-register operation")
+		return errors.Wrap(err, "failed to create pool-policy-updater operation")
 	} else if err := i.IsValid([]byte(cmd.OperationFlags.NetworkID)); err != nil {
-		return errors.Wrap(err, "invalid pool-register operation")
+		return errors.Wrap(err, "invalid pool-policy-updater operation")
 	} else {
 		cmd.Log().Debug().Interface("operation", i).Msg("operation loaded")
 
@@ -64,7 +64,7 @@ func (cmd *PoolRegisterCommand) Run(version util.Version) error { // nolint:dupl
 	return nil
 }
 
-func (cmd *PoolRegisterCommand) parseFlags() error {
+func (cmd *PoolPolicyUpdaterCommand) parseFlags() error {
 	if err := cmd.OperationFlags.IsValid(nil); err != nil {
 		return err
 	}
@@ -80,9 +80,9 @@ func (cmd *PoolRegisterCommand) parseFlags() error {
 	return nil
 }
 
-func (cmd *PoolRegisterCommand) createOperation() (feefi.PoolRegister, error) {
-	am := currency.NewAmount(cmd.InitialFee.Big, cmd.InitialFee.CID)
-	fact := feefi.NewPoolRegisterFact([]byte(cmd.Token), cmd.sender, cmd.pool, am, cmd.IncomeCurrency.CID, cmd.OutlayCurrency.CID, cmd.Currency.CID)
+func (cmd *PoolPolicyUpdaterCommand) createOperation() (feefi.PoolPolicyUpdater, error) {
+	am := currency.NewAmount(cmd.Fee.Big, cmd.Fee.CID)
+	fact := feefi.NewPoolPolicyUpdaterFact([]byte(cmd.Token), cmd.sender, cmd.pool, am, cmd.PoolID.ID, cmd.Currency.CID)
 
 	var fs []base.FactSign
 	sig, err := base.NewFactSignature(
@@ -91,9 +91,9 @@ func (cmd *PoolRegisterCommand) createOperation() (feefi.PoolRegister, error) {
 		[]byte(cmd.OperationFlags.NetworkID),
 	)
 	if err != nil {
-		return feefi.PoolRegister{}, err
+		return feefi.PoolPolicyUpdater{}, err
 	}
 	fs = append(fs, base.NewBaseFactSign(cmd.OperationFlags.Privatekey.Publickey(), sig))
 
-	return feefi.NewPoolRegister(fact, fs, cmd.OperationFlags.Memo)
+	return feefi.NewPoolPolicyUpdater(fact, fs, cmd.OperationFlags.Memo)
 }

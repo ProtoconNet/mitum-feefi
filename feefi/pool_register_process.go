@@ -36,7 +36,7 @@ type PoolRegisterProcessor struct {
 	fee currency.Big
 	as  extensioncurrency.ContractAccount // contract account status value
 	pl  Pool                              // feefi pool value
-	dg  Design                            // feefi design value
+	dg  PoolDesign                        // feefi design value
 }
 
 func NewPoolRegisterProcessor(cp *extensioncurrency.CurrencyPool) currency.GetNewProcessor {
@@ -59,7 +59,7 @@ func NewPoolRegisterProcessor(cp *extensioncurrency.CurrencyPool) currency.GetNe
 		opp.fee = currency.ZeroBig
 		opp.as = extensioncurrency.ContractAccount{}
 		opp.pl = Pool{}
-		opp.dg = Design{}
+		opp.dg = PoolDesign{}
 
 		return opp, nil
 	}
@@ -91,7 +91,7 @@ func (opp *PoolRegisterProcessor) PreProcess(
 		return nil, err
 	}
 	if !v.Owner().Equal(fact.sender) {
-		return nil, errors.Errorf("contract account owner, %q is not matched with %q", v.Owner(), fact.sender)
+		return nil, operation.NewBaseReasonError("contract account owner, %q is not matched with %q", v.Owner(), fact.sender)
 	}
 
 	opp.cs = st
@@ -125,7 +125,7 @@ func (opp *PoolRegisterProcessor) PreProcess(
 		return nil, err
 	}
 	opp.ds = st
-	opp.dg = NewDesign(fact.InitialFee(), fact.target)
+	opp.dg = NewPoolDesign(fact.InitialFee(), fact.target)
 
 	// check target don't have incoming amount state
 	// keep incoming amount state of target
@@ -206,7 +206,7 @@ func (opp *PoolRegisterProcessor) Close() error {
 	opp.fee = currency.ZeroBig
 	opp.as = extensioncurrency.ContractAccount{}
 	opp.pl = Pool{}
-	opp.dg = Design{}
+	opp.dg = PoolDesign{}
 
 	poolRegisterProcessorPool.Put(opp)
 

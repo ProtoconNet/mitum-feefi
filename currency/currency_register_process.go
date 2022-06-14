@@ -59,19 +59,19 @@ func (opp *CurrencyRegisterProcessor) PreProcess(
 		return nil, err
 	}
 
-	fact := opp.Fact().(extensioncurrency.CurrencyRegisterFact).Currency()
+	item := opp.Fact().(extensioncurrency.CurrencyRegisterFact).Currency()
 
 	if opp.cp != nil {
-		if opp.cp.Exists(fact.Currency()) {
-			return nil, operation.NewBaseReasonError("currency already registered, %q", fact.Currency())
+		if opp.cp.Exists(item.Currency()) {
+			return nil, operation.NewBaseReasonError("currency already registered, %q", item.Currency())
 		}
 	}
 
-	if err := checkExistsState(currency.StateKeyAccount(fact.GenesisAccount()), getState); err != nil {
+	if err := checkExistsState(currency.StateKeyAccount(item.GenesisAccount()), getState); err != nil {
 		return nil, errors.Wrap(err, "genesis account not found")
 	}
 
-	receiver := fact.Policy().Feeer().Receiver()
+	receiver := item.Policy().Feeer().Receiver()
 	if receiver != nil {
 		if err := checkExistsState(currency.StateKeyAccount(receiver), getState); err != nil {
 			return nil, errors.Wrap(err, "feeer receiver account not found")
@@ -84,7 +84,7 @@ func (opp *CurrencyRegisterProcessor) PreProcess(
 		return nil, errors.Wrap(err, "feeer receiver account is contract account")
 	}
 
-	f, ok := fact.Policy().Feeer().(feefi.FeefiFeeer)
+	f, ok := item.Policy().Feeer().(feefi.FeefiFeeer)
 	if ok {
 		if err := checkExistsState(currency.StateKeyAccount(f.Feefier()), getState); err != nil {
 			return nil, errors.Wrap(err, "feeer feefier account not found")
@@ -94,24 +94,29 @@ func (opp *CurrencyRegisterProcessor) PreProcess(
 		if err != nil {
 			return nil, errors.Wrap(err, "feeer feefier account is not contract account")
 		}
+		// check whether feeer feefier pool is registered
+		err = checkExistsState(feefi.StateKeyPool(f.Feefier(), extensioncurrency.ContractID(item.Currency())), getState)
+		if err != nil {
+			return nil, errors.Wrap(err, "feeer feefier pool is not registered")
+		}
 	}
 
-	switch st, found, err := getState(extensioncurrency.StateKeyCurrencyDesign(fact.Currency())); {
+	switch st, found, err := getState(extensioncurrency.StateKeyCurrencyDesign(item.Currency())); {
 	case err != nil:
 		return nil, err
 	case found:
-		return nil, operation.NewBaseReasonError("currency already registered, %q", fact.Currency())
+		return nil, operation.NewBaseReasonError("currency already registered, %q", item.Currency())
 	default:
 		opp.de = st
 	}
 
-	switch st, found, err := getState(currency.StateKeyBalance(fact.GenesisAccount(), fact.Currency())); {
+	switch st, found, err := getState(currency.StateKeyBalance(item.GenesisAccount(), item.Currency())); {
 	case err != nil:
 		return nil, err
 	case found:
-		return nil, operation.NewBaseReasonError("genesis account has already the currency, %q", fact.Currency())
+		return nil, operation.NewBaseReasonError("genesis account has already the currency, %q", item.Currency())
 	default:
-		opp.ga = currency.NewAmountState(st, fact.Currency())
+		opp.ga = currency.NewAmountState(st, item.Currency())
 	}
 
 	return opp, nil

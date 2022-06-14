@@ -57,7 +57,7 @@ func (ks ContractAccountKeys) IsValid([]byte) error {
 	}
 
 	if len(ks.keys) > 0 {
-		return isvalid.InvalidError.Errorf("keys of contract account exist")
+		return isvalid.InvalidError.Errorf("keys of contract account exists")
 	}
 
 	if h, err := ks.GenerateHash(); err != nil {

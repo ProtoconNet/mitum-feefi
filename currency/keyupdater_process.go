@@ -91,10 +91,10 @@ func (opp *KeyUpdaterProcessor) PreProcess(
 		if err != nil {
 			return nil, operation.NewBaseReasonErrorFromError(err)
 		}
-		if design.Fee().Currency() != cid {
-			return nil, errors.Errorf("feefi design fee currency id, %q not matched with %q", design.Fee().Currency(), cid)
+		if design.Policy().Fee().Currency() != cid {
+			return nil, errors.Errorf("feefi design fee currency id, %q not matched with %q", design.Policy().Fee().Currency(), cid)
 		}
-		fee = design.Fee().Big()
+		fee = design.Policy().Fee().Big()
 	} else {
 		var err error
 		switch fee, err = f.Fee(currency.ZeroBig); {

@@ -9,40 +9,6 @@ import (
 	"github.com/spikeekips/mitum/util/valuehash"
 )
 
-func (it *BaseWithdrawsItem) unpack(
-	enc encoder.Encoder,
-	bTarget base.AddressDecoder,
-	spi string,
-	bam []byte,
-) error {
-	a, err := bTarget.Encode(enc)
-	if err != nil {
-		return err
-	}
-	it.target = a
-
-	it.poolID = extensioncurrency.ContractID(spi)
-
-	ham, err := enc.DecodeSlice(bam)
-	if err != nil {
-		return err
-	}
-
-	am := make([]currency.Amount, len(ham))
-	for i := range ham {
-		j, ok := ham[i].(currency.Amount)
-		if !ok {
-			return util.WrongTypeError.Errorf("expected Amount, not %T", ham[i])
-		}
-
-		am[i] = j
-	}
-
-	it.amounts = am
-
-	return nil
-}
-
 func (fact *WithdrawsFact) unpack(
 	enc encoder.Encoder,
 	h valuehash.Hash,

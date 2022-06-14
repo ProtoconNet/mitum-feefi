@@ -17,8 +17,8 @@ type WithdrawPoolCommand struct {
 	*BaseCommand
 	OperationFlags
 	Sender  AddressFlag                       `arg:"" name:"sender" help:"sender address" required:"true"`
-	PoolID  extensioncmds.ContractIDFlag      `arg:"" name:"pool-id" help:"pool currency id" required:"true"`
 	Pool    AddressFlag                       `arg:"" name:"pool" help:"pool address" required:"true"`
+	PoolID  extensioncmds.ContractIDFlag      `arg:"" name:"pool-id" help:"pool currency id" required:"true"`
 	Seal    mitumcmds.FileLoad                `help:"seal" optional:""`
 	Amounts []currencycmds.CurrencyAmountFlag `arg:"" name:"currency-amount" help:"amount (ex: \"<currency>,<amount>\")"`
 	sender  base.Address

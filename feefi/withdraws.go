@@ -20,19 +20,8 @@ var (
 )
 
 var (
-	MaxWithdrawsItems  uint = 10
 	MaxWithdrawsAmount uint = 10
 )
-
-type WithdrawsItem interface {
-	hint.Hinter
-	isvalid.IsValider
-	currency.AmountsItem
-	Bytes() []byte
-	Target() base.Address
-	PoolID() extensioncurrency.ContractID
-	Rebuild() WithdrawsItem
-}
 
 type WithdrawsFact struct {
 	hint.BaseHinter

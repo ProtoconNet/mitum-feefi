@@ -61,18 +61,18 @@ func (opp *CurrencyPolicyUpdaterProcessor) PreProcess(
 		return nil, err
 	}
 
-	fact := opp.Fact().(extensioncurrency.CurrencyPolicyUpdaterFact)
+	item := opp.Fact().(extensioncurrency.CurrencyPolicyUpdaterFact)
 
 	if opp.cp != nil {
-		i, found := opp.cp.State(fact.Currency())
+		i, found := opp.cp.State(item.Currency())
 		if !found {
-			return nil, operation.NewBaseReasonError("unknown currency, %q found", fact.Currency())
+			return nil, operation.NewBaseReasonError("unknown currency, %q found", item.Currency())
 		}
 		opp.st = i
-		opp.de, _ = opp.cp.Get(fact.Currency())
+		opp.de, _ = opp.cp.Get(item.Currency())
 	}
 
-	receiver := fact.Policy().Feeer().Receiver()
+	receiver := item.Policy().Feeer().Receiver()
 	if receiver != nil {
 		if err := checkExistsState(currency.StateKeyAccount(receiver), getState); err != nil {
 			return nil, errors.Wrap(err, "feeer receiver account not found")
@@ -85,7 +85,7 @@ func (opp *CurrencyPolicyUpdaterProcessor) PreProcess(
 		return nil, errors.Wrap(err, "feeer receiver account is contract account")
 	}
 
-	f, ok := fact.Policy().Feeer().(feefi.FeefiFeeer)
+	f, ok := item.Policy().Feeer().(feefi.FeefiFeeer)
 	if ok {
 		if err := checkExistsState(currency.StateKeyAccount(f.Feefier()), getState); err != nil {
 			return nil, errors.Wrap(err, "feeer feefier account not found")
@@ -94,6 +94,11 @@ func (opp *CurrencyPolicyUpdaterProcessor) PreProcess(
 		err := checkExistsState(extensioncurrency.StateKeyContractAccount(f.Feefier()), getState)
 		if err != nil {
 			return nil, errors.Wrap(err, "feeer feefier account is not contract account")
+		}
+		// check whether feeer feefier pool is registered
+		err = checkExistsState(feefi.StateKeyPool(f.Feefier(), extensioncurrency.ContractID(item.Currency())), getState)
+		if err != nil {
+			return nil, errors.Wrap(err, "feeer feefier pool is not registered")
 		}
 	}
 

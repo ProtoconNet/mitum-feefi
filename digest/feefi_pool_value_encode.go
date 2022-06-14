@@ -52,7 +52,7 @@ func (va *FeefiPoolValue) unpack(
 	if err != nil {
 		return err
 	}
-	k, ok := h.(feefi.Design)
+	k, ok := h.(feefi.PoolDesign)
 	if !ok {
 		return util.WrongTypeError.Errorf("expected feefi.Design, not %T", h)
 	}

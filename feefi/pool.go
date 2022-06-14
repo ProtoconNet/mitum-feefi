@@ -13,10 +13,10 @@ import (
 	"github.com/spikeekips/mitum/util/valuehash"
 )
 
-var MaxFeeFiPoolLength = 5000
+var MaxFeeFiPoolLength = 10000
 
 var (
-	PoolUserBalanceType   = hint.Type("mitum-feefi-pool-user")
+	PoolUserBalanceType   = hint.Type("mitum-feefi-pool-user-balance")
 	PoolUserBalanceHint   = hint.NewHint(PoolUserBalanceType, "v0.0.1")
 	PoolUserBalanceHinter = PoolUserBalance{BaseHinter: hint.NewBaseHinter(PoolUserBalanceHint)}
 )
@@ -44,52 +44,40 @@ func (pl PoolUserBalance) Outlay() extensioncurrency.AmountValue {
 	return pl.outlay
 }
 
-func (pl *PoolUserBalance) AddIncome(v currency.Amount) error {
-	if v.Currency() != pl.income.Amount().Currency() {
-		return errors.Errorf("currency, %q not matched with pool income currency", v.Currency())
-	}
-	k := pl.income.Amount().Big().Add(v.Big())
+func (pl *PoolUserBalance) AddIncome(v currency.Big) error {
+	k := pl.income.Amount().Big().Add(v)
 	id := extensioncurrency.ContractID(pl.income.ID())
-	pl.income = extensioncurrency.NewAmountValue(k, v.Currency(), id)
+	pl.income = extensioncurrency.NewAmountValue(k, pl.income.Amount().Currency(), id)
 
 	return nil
 }
 
-func (pl *PoolUserBalance) SubIncome(v currency.Amount) error {
-	if v.Currency() != pl.income.Amount().Currency() {
-		return errors.Errorf("currency, %q not matched with pool income currency", v.Currency())
-	}
-	k := pl.income.Amount().Big().Sub(v.Big())
+func (pl *PoolUserBalance) SubIncome(v currency.Big) error {
+	k := pl.income.Amount().Big().Sub(v)
 	if !k.OverNil() {
 		return errors.Errorf("under zero value, %q after SubIncome", k)
 	}
 	id := extensioncurrency.ContractID(pl.income.ID())
-	pl.income = extensioncurrency.NewAmountValue(k, v.Currency(), id)
+	pl.income = extensioncurrency.NewAmountValue(k, pl.income.Amount().Currency(), id)
 
 	return nil
 }
 
-func (pl *PoolUserBalance) AddOutlay(v currency.Amount) error {
-	if v.Currency() != pl.outlay.Amount().Currency() {
-		return errors.Errorf("currency, %q not matched with pool outlay currency", v.Currency())
-	}
-	k := pl.outlay.Amount().Big().Add(v.Big())
+func (pl *PoolUserBalance) AddOutlay(v currency.Big) error {
+	k := pl.outlay.Amount().Big().Add(v)
 	id := extensioncurrency.ContractID(pl.income.ID())
-	pl.outlay = extensioncurrency.NewAmountValue(k, v.Currency(), id)
+	pl.outlay = extensioncurrency.NewAmountValue(k, pl.outlay.Amount().Currency(), id)
 
 	return nil
 }
 
-func (pl *PoolUserBalance) SubOutlay(v currency.Amount) error {
-	if v.Currency() != pl.outlay.Amount().Currency() {
-		return errors.Errorf("currency, %q not matched with pool outlay currency", v.Currency())
-	}
-	k := pl.outlay.Amount().Big().Sub(v.Big())
+func (pl *PoolUserBalance) SubOutlay(v currency.Big) error {
+	k := pl.outlay.Amount().Big().Sub(v)
 	if !k.OverNil() {
 		return errors.Errorf("under zero value, %q after SubOutlay", k)
 	}
 	id := extensioncurrency.ContractID(pl.income.ID())
-	pl.outlay = extensioncurrency.NewAmountValue(k, v.Currency(), id)
+	pl.outlay = extensioncurrency.NewAmountValue(k, pl.outlay.Amount().Currency(), id)
 
 	return nil
 }
@@ -198,6 +186,7 @@ func (fp Pool) Equal(b Pool) bool {
 	return true
 }
 
+/*
 type PoolUsers struct {
 	hint.BaseHinter
 	users            map[string]PoolUserBalance
@@ -295,3 +284,4 @@ func (fp PoolUsers) Equal(b PoolUsers) bool {
 
 	return true
 }
+*/

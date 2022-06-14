@@ -1,18 +1,19 @@
 package feefi
 
 import (
+	"encoding/json"
+
 	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
 	"github.com/spikeekips/mitum-currency/currency"
 	jsonenc "github.com/spikeekips/mitum/util/encoder/json"
 	"github.com/spikeekips/mitum/util/hint"
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 type PoolJSONPacker struct {
 	jsonenc.HintedHead
 	US map[string]PoolUserBalance `json:"users"`
-	PI currency.Amount            `json:"previncomefeebalance"`
-	PO currency.Amount            `json:"prevoutlayfeebalance"`
+	PI currency.Amount            `json:"previncomebalance"`
+	PO currency.Amount            `json:"prevoutlaybalance"`
 }
 
 func (pl Pool) MarshalJSON() ([]byte, error) {
@@ -25,10 +26,10 @@ func (pl Pool) MarshalJSON() ([]byte, error) {
 }
 
 type PoolJSONUnpacker struct {
-	HT hint.Hint `json:"_hint"`
-	US bson.Raw  `json:"users"`
-	PI bson.Raw  `json:"previncomefeebalance"`
-	PO bson.Raw  `json:"prevoutlayfeebalance"`
+	HT hint.Hint       `json:"_hint"`
+	US json.RawMessage `json:"users"`
+	PI json.RawMessage `json:"previncomebalance"`
+	PO json.RawMessage `json:"prevoutlaybalance"`
 }
 
 func (pl Pool) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
@@ -55,13 +56,13 @@ func (pl PoolUserBalance) MarshalJSON() ([]byte, error) {
 }
 
 type PoolUserBalanceJSONUnpacker struct {
-	HT hint.Hint `json:"_hint"`
-	PI bson.Raw  `json:"incomeamount"`
-	PO bson.Raw  `json:"outlayamount"`
+	HT hint.Hint       `json:"_hint"`
+	PI json.RawMessage `json:"incomeamount"`
+	PO json.RawMessage `json:"outlayamount"`
 }
 
 func (pl PoolUserBalance) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
-	var upl PoolJSONUnpacker
+	var upl PoolUserBalanceJSONUnpacker
 	if err := enc.Unmarshal(b, &upl); err != nil {
 		return err
 	}

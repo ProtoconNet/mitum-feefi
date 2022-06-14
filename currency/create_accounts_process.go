@@ -270,10 +270,10 @@ func CalculateItemsFee(cp *extensioncurrency.CurrencyPool, items []currency.Amou
 				if err != nil {
 					return nil, err
 				}
-				if design.Fee().Currency() != am.Currency() {
-					return nil, errors.Errorf("feefi design fee currency id, %q not matched with %q", design.Fee().Currency(), am.Currency())
+				if design.Policy().Fee().Currency() != am.Currency() {
+					return nil, errors.Errorf("feefi design fee currency id, %q not matched with %q", design.Policy().Fee().Currency(), am.Currency())
 				}
-				k = design.Fee().Big()
+				k = design.Policy().Fee().Big()
 			} else {
 				var err error
 				switch k, err = f.Fee(am.Big()); {

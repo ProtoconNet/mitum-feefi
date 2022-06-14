@@ -1066,7 +1066,7 @@ func (st *Database) feefiBalance(fid string) ([]currency.Amount, base.Height, ba
 	return ams, lastHeight, previousHeight, nil
 }
 
-func (st *Database) feefiDesign(fid string) (feefi.Design, base.Height, base.Height, error) {
+func (st *Database) feefiDesign(fid string) (feefi.PoolDesign, base.Height, base.Height, error) {
 	lastHeight, previousHeight := base.NilHeight, base.NilHeight
 	var sta state.State
 	if err := st.database.Client().GetByFilter(
@@ -1083,12 +1083,12 @@ func (st *Database) feefiDesign(fid string) (feefi.Design, base.Height, base.Hei
 		},
 		options.FindOne().SetSort(util.NewBSONFilter("height", -1).D()),
 	); err != nil {
-		return feefi.Design{}, lastHeight, previousHeight, err
+		return feefi.PoolDesign{}, lastHeight, previousHeight, err
 	}
 
 	i, err := feefi.StateDesignValue(sta)
 	if err != nil {
-		return feefi.Design{}, lastHeight, previousHeight, err
+		return feefi.PoolDesign{}, lastHeight, previousHeight, err
 	}
 
 	if h := sta.Height(); h > lastHeight {

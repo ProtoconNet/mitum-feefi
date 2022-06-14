@@ -59,20 +59,20 @@ func IsStateDesignKey(key string) bool {
 	return strings.HasSuffix(key, StateKeyDesignSuffix)
 }
 
-func StateDesignValue(st state.State) (Design, error) {
+func StateDesignValue(st state.State) (PoolDesign, error) {
 	v := st.Value()
 	if v == nil {
-		return Design{}, util.NotFoundError.Errorf("feefi pool design not found in State")
+		return PoolDesign{}, util.NotFoundError.Errorf("feefi pool design not found in State")
 	}
 
-	s, ok := v.Interface().(Design)
+	s, ok := v.Interface().(PoolDesign)
 	if !ok {
-		return Design{}, errors.Errorf("invalid feefi pool design value found, %T", v.Interface())
+		return PoolDesign{}, errors.Errorf("invalid feefi pool design value found, %T", v.Interface())
 	}
 	return s, nil
 }
 
-func setStateDesignValue(st state.State, v Design) (state.State, error) {
+func setStateDesignValue(st state.State, v PoolDesign) (state.State, error) {
 	uv, err := state.NewHintedValue(v)
 	if err != nil {
 		return nil, err

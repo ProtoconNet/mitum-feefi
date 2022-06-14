@@ -19,7 +19,7 @@ type FeefiPoolValue struct {
 	prevOutlayBalance currency.Amount
 	usersCount        int
 	balance           []currency.Amount
-	design            feefi.Design
+	design            feefi.PoolDesign
 	height            base.Height
 	previousHeight    base.Height
 }
@@ -39,7 +39,7 @@ func NewFeefiPoolValue(st state.State) (FeefiPoolValue, error) {
 		prevIncomeBalance: fp.IncomeBalance(),
 		prevOutlayBalance: fp.OutlayBalance(),
 		usersCount:        len(fp.Users()),
-		design:            feefi.NewDesign(currency.NewZeroAmount(fp.IncomeBalance().Currency()), currency.NewAddress(address)),
+		design:            feefi.NewPoolDesign(currency.NewZeroAmount(fp.IncomeBalance().Currency()), currency.NewAddress(address)),
 		height:            st.Height(),
 		previousHeight:    st.PreviousHeight(),
 	}, nil
@@ -57,7 +57,7 @@ func (fp FeefiPoolValue) PrevOutlayBalance() currency.Amount {
 	return fp.prevOutlayBalance
 }
 
-func (fp FeefiPoolValue) Design() feefi.Design {
+func (fp FeefiPoolValue) Design() feefi.PoolDesign {
 	return fp.design
 }
 
@@ -95,7 +95,7 @@ func (fp FeefiPoolValue) SetBalance(balance []currency.Amount) FeefiPoolValue {
 	return fp
 }
 
-func (fp FeefiPoolValue) SetFeefiDesign(design feefi.Design) FeefiPoolValue {
+func (fp FeefiPoolValue) SetFeefiDesign(design feefi.PoolDesign) FeefiPoolValue {
 	fp.design = design
 
 	return fp

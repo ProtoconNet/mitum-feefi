@@ -14,6 +14,7 @@ func (pl *Pool) unpack(enc encoder.Encoder, ht hint.Hint, bus []byte, bib []byte
 	if err != nil {
 		return err
 	}
+
 	fmap := make(map[string]PoolUserBalance)
 	for k := range hmap {
 		j, ok := hmap[k].(PoolUserBalance)
@@ -56,7 +57,7 @@ func (pl *PoolUserBalance) unpack(enc encoder.Encoder, ht hint.Hint, bia []byte,
 	}
 	i, ok := h.(extensioncurrency.AmountValue)
 	if !ok {
-		return util.WrongTypeError.Errorf("expected Amount, not %T", h)
+		return util.WrongTypeError.Errorf("expected extensioncurrency.AmountValue, not %T", h)
 	}
 	pl.income = i
 
@@ -66,7 +67,7 @@ func (pl *PoolUserBalance) unpack(enc encoder.Encoder, ht hint.Hint, bia []byte,
 	}
 	j, ok := h.(extensioncurrency.AmountValue)
 	if !ok {
-		return util.WrongTypeError.Errorf("expected Amount, not %T", h)
+		return util.WrongTypeError.Errorf("expected extensioncurrency.AmountValue, not %T", h)
 	}
 	pl.outlay = j
 

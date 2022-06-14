@@ -96,7 +96,9 @@ func (opr *OperationProcessor) SetProcessor(
 	newProcessor currency.GetNewProcessor,
 ) (prprocessor.OperationProcessor, error) {
 	if err := opr.processorHintSet.Add(hinter, newProcessor); err != nil {
-		return nil, err
+		if !errors.Is(err, util.FoundError) {
+			return nil, err
+		}
 	}
 	return opr, nil
 }
@@ -156,7 +158,8 @@ func (opr *OperationProcessor) Process(op state.Processor) error {
 		*extensioncurrency.WithdrawsProcessor,
 		*feefi.DepositsProcessor,
 		*feefi.WithdrawsProcessor,
-		*feefi.PoolRegisterProcessor:
+		*feefi.PoolRegisterProcessor,
+		*feefi.PoolPolicyUpdaterProcessor:
 		return opr.process(op)
 	case currency.Transfers,
 		currency.CreateAccounts,
@@ -168,7 +171,8 @@ func (opr *OperationProcessor) Process(op state.Processor) error {
 		extensioncurrency.Withdraws,
 		feefi.Deposit,
 		feefi.Withdraws,
-		feefi.PoolRegister:
+		feefi.PoolRegister,
+		feefi.PoolPolicyUpdater:
 		pr, err := opr.PreProcess(op)
 		if err != nil {
 			return err
@@ -198,6 +202,8 @@ func (opr *OperationProcessor) process(op state.Processor) error {
 	case *feefi.WithdrawsProcessor:
 		sp = t
 	case *feefi.PoolRegisterProcessor:
+		sp = t
+	case *feefi.PoolPolicyUpdaterProcessor:
 		sp = t
 	default:
 		return op.Process(opr.pool.Get, opr.pool.Set)
@@ -250,6 +256,9 @@ func (opr *OperationProcessor) checkDuplication(op state.Processor) error { // n
 		didtype = DuplicationTypeSender
 	case feefi.PoolRegister:
 		did = fmt.Sprintf("%s-%s", t.Fact().(feefi.PoolRegisterFact).Target().String(), t.Fact().(feefi.PoolRegisterFact).IncomeCID().String())
+		didtype = DuplicationTypePoolAndCurrency
+	case feefi.PoolPolicyUpdater:
+		did = fmt.Sprintf("%s-%s", t.Fact().(feefi.PoolPolicyUpdaterFact).Target().String(), t.Fact().(feefi.PoolPolicyUpdaterFact).PoolID().String())
 		didtype = DuplicationTypePoolAndCurrency
 	default:
 		return nil
@@ -342,7 +351,8 @@ func (opr *OperationProcessor) getNewProcessor(op state.Processor) (state.Proces
 		extensioncurrency.Withdraws,
 		feefi.Deposit,
 		feefi.Withdraws,
-		feefi.PoolRegister:
+		feefi.PoolRegister,
+		feefi.PoolPolicyUpdater:
 
 		return nil, false, errors.Errorf("%T needs SetProcessor", t)
 	default:

@@ -19,18 +19,6 @@ var (
 	DepositHinter     = Deposit{BaseOperation: operationHinter(DepositHint)}
 )
 
-var MaxDepositsItems uint = 10
-
-type DepositsItem interface {
-	hint.Hinter
-	isvalid.IsValider
-	currency.AmountsItem
-	Bytes() []byte
-	PoolID() extensioncurrency.ContractID
-	Pool() base.Address
-	Rebuild() DepositsItem
-}
-
 type DepositFact struct {
 	hint.BaseHinter
 	h      valuehash.Hash

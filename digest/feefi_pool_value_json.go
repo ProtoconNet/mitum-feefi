@@ -15,7 +15,7 @@ type FeefiPoolValueJSONPacker struct {
 	OB currency.Amount   `json:"previous_outlay_balance"`
 	UC int               `json:"user_count"`
 	BL []currency.Amount `json:"balance,omitempty"`
-	DE feefi.Design      `json:"design,omitempty"`
+	DE feefi.PoolDesign  `json:"design,omitempty"`
 	HT base.Height       `json:"height"`
 	PT base.Height       `json:"previous_height"`
 }

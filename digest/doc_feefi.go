@@ -41,7 +41,6 @@ func NewFeefiPoolValueDoc(st state.State, enc encoder.Encoder) (FeefiPoolValueDo
 			},
 			nil
 	}
-	return FeefiPoolValueDoc{}, FeefiPoolDoc{}, errors.Errorf("not feefi pool state, %q", st)
 }
 
 func (doc FeefiPoolValueDoc) MarshalBSON() ([]byte, error) {
@@ -79,7 +78,7 @@ func (doc FeefiPoolDoc) MarshalBSON() ([]byte, error) {
 type FeefiDesignDoc struct {
 	mongodbstorage.BaseDoc
 	st state.State
-	de feefi.Design
+	de feefi.PoolDesign
 }
 
 func NewFeefiDesignDoc(st state.State, enc encoder.Encoder) (FeefiDesignDoc, error) {
@@ -106,8 +105,8 @@ func (doc FeefiDesignDoc) MarshalBSON() ([]byte, error) {
 		return nil, err
 	}
 
-	address := doc.st.Key()[:len(doc.st.Key())-len(feefi.StateKeyDesignSuffix)-len(doc.de.Fee().Currency())-1]
-	m["feefipoolid"] = doc.de.Fee().Currency().String()
+	address := doc.st.Key()[:len(doc.st.Key())-len(feefi.StateKeyDesignSuffix)-len(doc.de.Policy().Fee().Currency())-1]
+	m["feefipoolid"] = doc.de.Policy().Fee().Currency().String()
 	m["address"] = address
 	m["height"] = doc.st.Height()
 

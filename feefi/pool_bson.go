@@ -11,9 +11,9 @@ func (pl Pool) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(bsonenc.MergeBSONM(
 		bsonenc.NewHintedDoc(pl.Hint()),
 		bson.M{
-			"users":                pl.users,
-			"previncomefeebalance": pl.prevIncomeAmount,
-			"prevoutlayfeebalance": pl.prevOutlayAmount,
+			"users":             pl.users,
+			"previncomebalance": pl.prevIncomeAmount,
+			"prevoutlaybalance": pl.prevOutlayAmount,
 		}),
 	)
 }
@@ -21,8 +21,8 @@ func (pl Pool) MarshalBSON() ([]byte, error) {
 type PoolBSONUnpacker struct {
 	HT hint.Hint `bson:"_hint"`
 	US bson.Raw  `bson:"users"`
-	IB bson.Raw  `bson:"previncomefeebalance"`
-	OB bson.Raw  `bson:"prevoutlayfeebalance"`
+	IB bson.Raw  `bson:"previncomebalance"`
+	OB bson.Raw  `bson:"prevoutlaybalance"`
 }
 
 func (pl *Pool) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
