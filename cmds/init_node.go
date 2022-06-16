@@ -118,7 +118,7 @@ func GenesisOperationsHandlerGenesisCurrencies(
 		cds[i] = j
 	}
 
-	if op, err := extensioncurrency.NewGenesisCurrencies(
+	if op, err := feefi.NewGenesisCurrencies(
 		conf.Privatekey(),
 		de.AccountKeys.Keys,
 		cds,

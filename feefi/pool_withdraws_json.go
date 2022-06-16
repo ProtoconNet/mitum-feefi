@@ -20,7 +20,7 @@ type WithdrawsFactJSONPacker struct {
 	AM []currency.Amount            `json:"amounts"`
 }
 
-func (fact WithdrawsFact) MarshalJSON() ([]byte, error) {
+func (fact PoolWithdrawsFact) MarshalJSON() ([]byte, error) {
 	return jsonenc.Marshal(WithdrawsFactJSONPacker{
 		HintedHead: jsonenc.NewHintedHead(fact.Hint()),
 		H:          fact.h,
@@ -32,7 +32,7 @@ func (fact WithdrawsFact) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (fact *WithdrawsFact) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
+func (fact *PoolWithdrawsFact) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
 	var ufact struct {
 		H  valuehash.Bytes     `json:"hash"`
 		TK []byte              `json:"token"`
@@ -48,7 +48,7 @@ func (fact *WithdrawsFact) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
 	return fact.unpack(enc, ufact.H, ufact.TK, ufact.SD, ufact.PL, ufact.PI, ufact.AM)
 }
 
-func (op *Withdraws) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
+func (op *PoolWithdraws) UnpackJSON(b []byte, enc *jsonenc.Encoder) error {
 	var ubo currency.BaseOperation
 	if err := ubo.UnpackJSON(b, enc); err != nil {
 		return err

@@ -1086,7 +1086,7 @@ func (st *Database) feefiDesign(fid string) (feefi.PoolDesign, base.Height, base
 		return feefi.PoolDesign{}, lastHeight, previousHeight, err
 	}
 
-	i, err := feefi.StateDesignValue(sta)
+	i, err := feefi.StatePoolDesignValue(sta)
 	if err != nil {
 		return feefi.PoolDesign{}, lastHeight, previousHeight, err
 	}

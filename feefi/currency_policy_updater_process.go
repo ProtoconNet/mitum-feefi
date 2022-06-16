@@ -1,10 +1,9 @@
-package currency
+package feefi
 
 import (
 	"sync"
 
 	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
-	"github.com/ProtoconNet/mitum-feefi/feefi"
 	"github.com/pkg/errors"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
@@ -22,7 +21,7 @@ var currencyUpdaterProcessorPool = sync.Pool{
 
 type CurrencyPolicyUpdaterProcessor struct {
 	extensioncurrency.CurrencyPolicyUpdater
-	cp        *extensioncurrency.CurrencyPool
+	cp        *CurrencyPool
 	pubs      []key.Publickey
 	threshold base.Threshold
 	st        state.State
@@ -30,7 +29,7 @@ type CurrencyPolicyUpdaterProcessor struct {
 }
 
 func NewCurrencyPolicyUpdaterProcessor(
-	cp *extensioncurrency.CurrencyPool,
+	cp *CurrencyPool,
 	pubs []key.Publickey,
 	threshold base.Threshold,
 ) currency.GetNewProcessor {
@@ -85,7 +84,7 @@ func (opp *CurrencyPolicyUpdaterProcessor) PreProcess(
 		return nil, errors.Wrap(err, "feeer receiver account is contract account")
 	}
 
-	f, ok := item.Policy().Feeer().(feefi.FeefiFeeer)
+	f, ok := item.Policy().Feeer().(FeefiFeeer)
 	if ok {
 		if err := checkExistsState(currency.StateKeyAccount(f.Feefier()), getState); err != nil {
 			return nil, errors.Wrap(err, "feeer feefier account not found")
@@ -96,7 +95,7 @@ func (opp *CurrencyPolicyUpdaterProcessor) PreProcess(
 			return nil, errors.Wrap(err, "feeer feefier account is not contract account")
 		}
 		// check whether feeer feefier pool is registered
-		err = checkExistsState(feefi.StateKeyPool(f.Feefier(), extensioncurrency.ContractID(item.Currency())), getState)
+		err = checkExistsState(StateKeyPool(f.Feefier(), extensioncurrency.ContractID(item.Currency())), getState)
 		if err != nil {
 			return nil, errors.Wrap(err, "feeer feefier pool is not registered")
 		}
@@ -111,7 +110,7 @@ func (opp *CurrencyPolicyUpdaterProcessor) Process(
 ) error {
 	fact := opp.Fact().(extensioncurrency.CurrencyPolicyUpdaterFact)
 
-	i, err := extensioncurrency.SetStateCurrencyDesignValue(opp.st, opp.de.SetPolicy(fact.Policy()))
+	i, err := SetStateCurrencyDesignValue(opp.st, opp.de.SetPolicy(fact.Policy()))
 	if err != nil {
 		return err
 	}

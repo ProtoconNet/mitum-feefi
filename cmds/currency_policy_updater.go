@@ -79,7 +79,7 @@ func (cmd *CurrencyPolicyUpdaterCommand) parseFlags() error {
 		return err
 	}
 
-	var feeer feefi.Feeer
+	var feeer extensioncurrency.Feeer
 	switch t := cmd.FeeerString; t {
 	case extensioncurrency.FeeerNil, "":
 		feeer = extensioncurrency.NewNilFeeer()

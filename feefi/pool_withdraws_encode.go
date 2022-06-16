@@ -9,7 +9,7 @@ import (
 	"github.com/spikeekips/mitum/util/valuehash"
 )
 
-func (fact *WithdrawsFact) unpack(
+func (fact *PoolWithdrawsFact) unpack(
 	enc encoder.Encoder,
 	h valuehash.Hash,
 	token []byte,

@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
-	feeficurrency "github.com/ProtoconNet/mitum-feefi/currency"
 	"github.com/ProtoconNet/mitum-feefi/feefi"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
@@ -41,7 +40,7 @@ type OperationProcessor struct {
 	sync.RWMutex
 	*logging.Logging
 	processorHintSet     *hint.Hintmap
-	cp                   *extensioncurrency.CurrencyPool
+	cp                   *feefi.CurrencyPool
 	pool                 *storage.Statepool
 	fee                  map[currency.CurrencyID]currency.Big
 	amountPool           map[string]currency.AmountState
@@ -50,7 +49,7 @@ type OperationProcessor struct {
 	processorClosers     *sync.Map
 }
 
-func NewOperationProcessor(cp *extensioncurrency.CurrencyPool) *OperationProcessor {
+func NewOperationProcessor(cp *feefi.CurrencyPool) *OperationProcessor {
 	return &OperationProcessor{
 		Logging: logging.NewLogging(func(c zerolog.Context) zerolog.Context {
 			return c.Str("module", "mitum-currency-operations-processor")
@@ -148,16 +147,16 @@ func (opr *OperationProcessor) PreProcess(op state.Processor) (state.Processor, 
 
 func (opr *OperationProcessor) Process(op state.Processor) error {
 	switch op.(type) {
-	case *feeficurrency.TransfersProcessor,
-		*feeficurrency.CreateAccountsProcessor,
-		*feeficurrency.KeyUpdaterProcessor,
-		*feeficurrency.CurrencyRegisterProcessor,
-		*feeficurrency.CurrencyPolicyUpdaterProcessor,
+	case *feefi.TransfersProcessor,
+		*feefi.CreateAccountsProcessor,
+		*feefi.KeyUpdaterProcessor,
+		*feefi.CurrencyRegisterProcessor,
+		*feefi.CurrencyPolicyUpdaterProcessor,
 		*extensioncurrency.SuffrageInflationProcessor,
-		*extensioncurrency.CreateContractAccountsProcessor,
-		*extensioncurrency.WithdrawsProcessor,
-		*feefi.DepositsProcessor,
+		*feefi.CreateContractAccountsProcessor,
 		*feefi.WithdrawsProcessor,
+		*feefi.DepositsProcessor,
+		*feefi.PoolWithdrawsProcessor,
 		*feefi.PoolRegisterProcessor,
 		*feefi.PoolPolicyUpdaterProcessor:
 		return opr.process(op)
@@ -170,7 +169,7 @@ func (opr *OperationProcessor) Process(op state.Processor) error {
 		extensioncurrency.CreateContractAccounts,
 		extensioncurrency.Withdraws,
 		feefi.Deposit,
-		feefi.Withdraws,
+		feefi.PoolWithdraws,
 		feefi.PoolRegister,
 		feefi.PoolPolicyUpdater:
 		pr, err := opr.PreProcess(op)
@@ -187,19 +186,19 @@ func (opr *OperationProcessor) process(op state.Processor) error {
 	var sp state.Processor
 
 	switch t := op.(type) {
-	case *feeficurrency.TransfersProcessor:
+	case *feefi.TransfersProcessor:
 		sp = t
-	case *feeficurrency.CreateAccountsProcessor:
+	case *feefi.CreateAccountsProcessor:
 		sp = t
-	case *feeficurrency.KeyUpdaterProcessor:
+	case *feefi.KeyUpdaterProcessor:
 		sp = t
-	case *extensioncurrency.CreateContractAccountsProcessor:
+	case *feefi.CreateContractAccountsProcessor:
 		sp = t
-	case *extensioncurrency.WithdrawsProcessor:
+	case *feefi.WithdrawsProcessor:
 		sp = t
 	case *feefi.DepositsProcessor:
 		sp = t
-	case *feefi.WithdrawsProcessor:
+	case *feefi.PoolWithdrawsProcessor:
 		sp = t
 	case *feefi.PoolRegisterProcessor:
 		sp = t
@@ -251,8 +250,8 @@ func (opr *OperationProcessor) checkDuplication(op state.Processor) error { // n
 	case feefi.Deposit:
 		did = t.Fact().(feefi.DepositFact).Sender().String()
 		didtype = DuplicationTypeSender
-	case feefi.Withdraws:
-		did = t.Fact().(feefi.WithdrawsFact).Sender().String()
+	case feefi.PoolWithdraws:
+		did = t.Fact().(feefi.PoolWithdrawsFact).Sender().String()
 		didtype = DuplicationTypeSender
 	case feefi.PoolRegister:
 		did = fmt.Sprintf("%s-%s", t.Fact().(feefi.PoolRegisterFact).Target().String(), t.Fact().(feefi.PoolRegisterFact).IncomeCID().String())
@@ -350,7 +349,7 @@ func (opr *OperationProcessor) getNewProcessor(op state.Processor) (state.Proces
 		extensioncurrency.CreateContractAccounts,
 		extensioncurrency.Withdraws,
 		feefi.Deposit,
-		feefi.Withdraws,
+		feefi.PoolWithdraws,
 		feefi.PoolRegister,
 		feefi.PoolPolicyUpdater:
 

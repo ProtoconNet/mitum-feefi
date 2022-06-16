@@ -25,7 +25,7 @@ func (PoolPolicyUpdater) Process(
 }
 
 type PoolPolicyUpdaterProcessor struct {
-	cp *extensioncurrency.CurrencyPool
+	cp *CurrencyPool
 	PoolPolicyUpdater
 	cs  state.State          // contract account status state
 	ds  state.State          // feefi design state
@@ -35,17 +35,15 @@ type PoolPolicyUpdaterProcessor struct {
 	dg  PoolDesign // feefi design value
 }
 
-func NewPoolPolicyUpdaterProcessor(cp *extensioncurrency.CurrencyPool) currency.GetNewProcessor {
+func NewPoolPolicyUpdaterProcessor(cp *CurrencyPool) currency.GetNewProcessor {
 	return func(op state.Processor) (state.Processor, error) {
-		i, ok := op.(PoolPolicyUpdater)
+		oppu, ok := op.(PoolPolicyUpdater)
 		if !ok {
 			return nil, operation.NewBaseReasonError("not ConfigContractAccount, %T", op)
 		}
-
 		opp := poolPolicyUpdaterProcessorPool.Get().(*PoolPolicyUpdaterProcessor)
-
 		opp.cp = cp
-		opp.PoolPolicyUpdater = i
+		opp.PoolPolicyUpdater = oppu
 		opp.cs = nil
 		opp.ds = nil
 		opp.ps = nil
@@ -69,7 +67,6 @@ func (opp *PoolPolicyUpdaterProcessor) PreProcess(
 	if err != nil {
 		return nil, err
 	}
-
 	// check existence of contract account status state
 	// check sender matched with contract account owner
 	// keep contract account state
@@ -78,12 +75,12 @@ func (opp *PoolPolicyUpdaterProcessor) PreProcess(
 	if err != nil {
 		return nil, err
 	}
-	v, err := extensioncurrency.StateContractAccountValue(st)
+	ca, err := extensioncurrency.StateContractAccountValue(st)
 	if err != nil {
 		return nil, err
 	}
-	if !v.Owner().Equal(fact.sender) {
-		return nil, operation.NewBaseReasonError("contract account owner, %q is not matched with %q", v.Owner(), fact.sender)
+	if !ca.Owner().Equal(fact.sender) {
+		return nil, operation.NewBaseReasonError("contract account owner, %q is not matched with %q", ca.Owner(), fact.sender)
 	}
 
 	opp.cs = st
@@ -106,12 +103,12 @@ func (opp *PoolPolicyUpdaterProcessor) PreProcess(
 
 	// check target design state exists
 	// keep design state of target
-	st, err = existsState(StateKeyDesign(fact.target, id), "design of target", getState)
+	st, err = existsState(StateKeyPoolDesign(fact.target, id), "design of target", getState)
 	if err != nil {
 		return nil, err
 	}
 	opp.ds = st
-	dg, err := StateDesignValue(st)
+	dg, err := StatePoolDesignValue(st)
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +151,11 @@ func (opp *PoolPolicyUpdaterProcessor) Process(
 	fact := opp.Fact().(PoolPolicyUpdaterFact)
 
 	opp.sb = opp.sb.Sub(opp.fee).AddFee(opp.fee)
-	dst, err := setStateDesignValue(opp.ds, opp.dg)
+	var (
+		dst state.State
+		err error
+	)
+	dst, err = SetStatePoolDesignValue(opp.ds, opp.dg)
 	if err != nil {
 		return operation.NewBaseReasonErrorFromError(err)
 	}

@@ -25,7 +25,7 @@ func (PoolRegister) Process(
 }
 
 type PoolRegisterProcessor struct {
-	cp *extensioncurrency.CurrencyPool
+	cp *CurrencyPool
 	PoolRegister
 	cs  state.State                   // contract account status state
 	ds  state.State                   // feefi design state
@@ -39,9 +39,9 @@ type PoolRegisterProcessor struct {
 	dg  PoolDesign                        // feefi design value
 }
 
-func NewPoolRegisterProcessor(cp *extensioncurrency.CurrencyPool) currency.GetNewProcessor {
+func NewPoolRegisterProcessor(cp *CurrencyPool) currency.GetNewProcessor {
 	return func(op state.Processor) (state.Processor, error) {
-		i, ok := op.(PoolRegister)
+		pr, ok := op.(PoolRegister)
 		if !ok {
 			return nil, errors.Errorf("not ConfigContractAccount, %T", op)
 		}
@@ -49,7 +49,7 @@ func NewPoolRegisterProcessor(cp *extensioncurrency.CurrencyPool) currency.GetNe
 		opp := poolRegisterProcessorPool.Get().(*PoolRegisterProcessor)
 
 		opp.cp = cp
-		opp.PoolRegister = i
+		opp.PoolRegister = pr
 		opp.cs = nil
 		opp.ds = nil
 		opp.ps = nil
@@ -86,16 +86,16 @@ func (opp *PoolRegisterProcessor) PreProcess(
 	if err != nil {
 		return nil, err
 	}
-	v, err := extensioncurrency.StateContractAccountValue(st)
+	ca, err := extensioncurrency.StateContractAccountValue(st)
 	if err != nil {
 		return nil, err
 	}
-	if !v.Owner().Equal(fact.sender) {
-		return nil, operation.NewBaseReasonError("contract account owner, %q is not matched with %q", v.Owner(), fact.sender)
+	if !ca.Owner().Equal(fact.sender) {
+		return nil, operation.NewBaseReasonError("contract account owner, %q is not matched with %q", ca.Owner(), fact.sender)
 	}
 
 	opp.cs = st
-	opp.as = v
+	opp.as = ca
 
 	// check sender has amount of currency
 	// keep amount state of sender
@@ -120,7 +120,7 @@ func (opp *PoolRegisterProcessor) PreProcess(
 
 	// check target don't have design state
 	// keep design state of target
-	st, err = notExistsState(StateKeyDesign(fact.target, id), "design of target", getState)
+	st, err = notExistsState(StateKeyPoolDesign(fact.target, id), "design of target", getState)
 	if err != nil {
 		return nil, err
 	}
@@ -178,19 +178,25 @@ func (opp *PoolRegisterProcessor) Process(
 	setState func(valuehash.Hash, ...state.State) error,
 ) error {
 	fact := opp.Fact().(PoolRegisterFact)
-
 	opp.sb = opp.sb.Sub(opp.fee).AddFee(opp.fee)
 	pst, err := setStatePoolValue(opp.ps, opp.pl)
 	if err != nil {
 		return operation.NewBaseReasonErrorFromError(err)
 	}
-	dst, err := setStateDesignValue(opp.ds, opp.dg)
+	dst, err := SetStatePoolDesignValue(opp.ds, opp.dg)
 	if err != nil {
 		return operation.NewBaseReasonErrorFromError(err)
 	}
 	id := extensioncurrency.ContractID(fact.incomeCID.String())
+
 	ibst, err := extensioncurrency.SetStateBalanceValue(opp.ib, extensioncurrency.NewAmountValuefromAmount(currency.NewZeroAmount(fact.incomeCID), id))
+	if err != nil {
+		return operation.NewBaseReasonErrorFromError(err)
+	}
 	obst, err := extensioncurrency.SetStateBalanceValue(opp.ob, extensioncurrency.NewAmountValuefromAmount(currency.NewZeroAmount(fact.outlayCID), id))
+	if err != nil {
+		return operation.NewBaseReasonErrorFromError(err)
+	}
 	return setState(fact.Hash(), pst, dst, ibst, obst, opp.sb)
 }
 

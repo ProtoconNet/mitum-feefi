@@ -160,10 +160,10 @@ func (FeeOperation) Process(
 
 type FeeOperationProcessor struct {
 	FeeOperation
-	cp *extensioncurrency.CurrencyPool
+	cp *CurrencyPool
 }
 
-func NewFeeOperationProcessor(cp *extensioncurrency.CurrencyPool, op FeeOperation) state.Processor {
+func NewFeeOperationProcessor(cp *CurrencyPool, op FeeOperation) state.Processor {
 	return &FeeOperationProcessor{
 		cp:           cp,
 		FeeOperation: op,
@@ -177,13 +177,15 @@ func (opp *FeeOperationProcessor) Process(
 	fact := opp.Fact().(FeeOperationFact)
 
 	var sts []state.State
-	// AmountState map of fee receiver
-	rb := make(map[string]currency.AmountState)
-	// AmountState map of feefier
-	fb := make(map[string]extensioncurrency.AmountState)
+	// AmountState map of fixed receiver
+	fixedReceiverBalance := make(map[string]currency.AmountState)
+	// AmountState map of feefi feefier
+	feefiFeefierBalance := make(map[string]extensioncurrency.AmountState)
+	// AmountState map of feefi receiver
+	feefiReceiverBalance := make(map[string]currency.AmountState)
 	for i := range fact.amounts {
 		am := fact.amounts[i]
-		var feeer Feeer
+		var feeer extensioncurrency.Feeer
 		j, found := opp.cp.Feeer(am.Currency())
 		if !found {
 			return errors.Errorf("unknown currency id, %q found for FeeOperation", am.Currency())
@@ -201,94 +203,137 @@ func (opp *FeeOperationProcessor) Process(
 			} else if st, _, err := getState(currency.StateKeyBalance(feeer.Receiver(), am.Currency())); err != nil {
 				return err
 			} else {
-				amountst, found := rb[am.Currency().String()]
+				amountst, found := fixedReceiverBalance[am.Currency().String()]
 				ra := currency.NewAmountState(st, am.Currency())
 				nra := ra.Add(am.Big())
 				if !found {
-					rb[am.Currency().String()] = nra
+					fixedReceiverBalance[am.Currency().String()] = nra
 				} else {
 					amount, err := currency.StateBalanceValue(amountst)
 					if err != nil {
 						return err
 					}
-					rb[am.Currency().String()] = nra.Add(amount.Big())
+					fixedReceiverBalance[am.Currency().String()] = nra.Add(amount.Big())
 				}
 				// rb := currency.NewAmountState(st, am.Currency())
 				// sts[i] = rb.Add(am.Big())
 			}
 		case FeeerFeefi:
-			v, ok := feeer.(FeefiFeeer)
+			feefierID := extensioncurrency.ContractID(am.Currency())
+			f, ok := feeer.(FeefiFeeer)
 			if !ok {
 				return errors.Errorf("not FeefiFeeer, %q", feeer)
 			}
-			// TODO:check whether feefi is contract account
-			if err := checkExistsState(currency.StateKeyAccount(v.Feefier()), getState); err != nil {
+			var CurrencyReceiverAmountState state.State
+			checkErr := true
+			// prepare fee receiver amount state
+			if err := checkExistsState(currency.StateKeyAccount(feeer.Receiver()), getState); err != nil {
 				return err
-			} else if amountst, found := fb[am.Currency().String()+am.Currency().String()]; !found {
-				id := extensioncurrency.ContractID(am.Currency())
-				if st, _, err := getState(extensioncurrency.StateKeyBalance(v.Feefier(), id, am.Currency(), StateKeyBalanceSuffix)); err != nil {
-					return err
+			} else if CurrencyReceiverAmountState, _, err = getState(currency.StateKeyBalance(feeer.Receiver(), am.Currency())); err != nil {
+				return err
+			}
+			// check exchange currency in currency pool
+			exchangeCurrencyFeeer, ok := opp.cp.Feeer(f.exchangeCID)
+			if !ok {
+				checkErr = false
+				// return errors.Errorf("feeer exchange currency not found in currency pool, %q", f.exchangeCID)
+			}
+			// check exchange currency receiver
+			err := checkExistsState(currency.StateKeyAccount(exchangeCurrencyFeeer.Receiver()), getState)
+			if err != nil {
+				checkErr = false
+				// update receiver amount state by adding exchange fee
+			}
+			exchangeCurrencyReceiverAmountState, _, err := getState(currency.StateKeyBalance(exchangeCurrencyFeeer.Receiver(), f.ExchangeCID()))
+			if err != nil {
+				checkErr = false
+			}
+			// check feefier exists
+			if err := checkExistsState(currency.StateKeyAccount(f.Feefier()), getState); err != nil {
+				checkErr = false
+				// check whether feefier is contract account
+				// TODO:check whether contract account deactivated
+			} else if _, err := existsState(extensioncurrency.StateKeyContractAccount(f.Feefier()), "contract account", getState); err != nil {
+				checkErr = false
+
+			}
+			feefierIncomeAmountState, _, err := getState(extensioncurrency.StateKeyBalance(f.Feefier(), feefierID, am.Currency(), StateKeyBalanceSuffix))
+			if err != nil {
+				checkErr = false
+			}
+			feefiOutlayAmountState, _, err := getState(extensioncurrency.StateKeyBalance(f.Feefier(), feefierID, f.ExchangeCID(), StateKeyBalanceSuffix))
+			if err != nil {
+				checkErr = false
+			}
+			amv, err := extensioncurrency.StateBalanceValue(feefiOutlayAmountState)
+			if err != nil {
+				checkErr = false
+			}
+			if amv.Amount().Big().Compare(f.ExchangeMin()) < 0 {
+				checkErr = false
+			}
+
+			if !checkErr {
+				if amountst, found := feefiReceiverBalance[f.ExchangeCID().String()]; !found {
+					ra := currency.NewAmountState(CurrencyReceiverAmountState, f.ExchangeCID())
+					nra := ra.Add(f.ExchangeMin())
+					feefiReceiverBalance[f.ExchangeCID().String()] = nra
 				} else {
-					ra := extensioncurrency.NewAmountState(st, am.Currency(), id)
-					nra := ra.Add(am.Big())
-					fb[am.Currency().String()+am.Currency().String()] = nra
+					ra := amountst.Add(f.ExchangeMin())
+					feefiReceiverBalance[f.ExchangeCID().String()] = ra
 				}
+				continue
+			}
+			sa := extensioncurrency.NewAmountState(feefiOutlayAmountState, f.ExchangeCID(), feefierID)
+			nsa := sa.Sub(f.ExchangeMin())
+			// update feefier amount state by substracting exchange fee
+			if amountst, found := feefiFeefierBalance[am.Currency().String()+"-"+f.ExchangeCID().String()]; found {
+				sa := amountst.Sub(f.ExchangeMin())
+				feefiFeefierBalance[am.Currency().String()+"-"+f.ExchangeCID().String()] = sa
+			} else {
+				feefiFeefierBalance[am.Currency().String()+"-"+f.ExchangeCID().String()] = nsa
+			}
+
+			// update feefier amount state by adding fee
+			if amountst, found := feefiFeefierBalance[am.Currency().String()+"-"+am.Currency().String()]; !found {
+				ra := extensioncurrency.NewAmountState(feefierIncomeAmountState, am.Currency(), feefierID)
+				nra := ra.Add(am.Big())
+				feefiFeefierBalance[am.Currency().String()+"-"+am.Currency().String()] = nra
 			} else {
 				ra := amountst.Add(am.Big())
-				fb[am.Currency().String()+am.Currency().String()] = ra
+				feefiFeefierBalance[am.Currency().String()+"-"+am.Currency().String()] = ra
 			}
 
-			var exchangeCurrencyFeeer Feeer
-			j, found := opp.cp.Feeer(v.ExchangeCID())
-			if !found {
-				return errors.Errorf("unknown currency id, %q found for FeeOperation", v.ExchangeCID())
-			}
-			exchangeCurrencyFeeer = j
-
-			if err := checkExistsState(currency.StateKeyAccount(exchangeCurrencyFeeer.Receiver()), getState); err != nil {
-				return err
-			} else if amountst, found := rb[v.ExchangeCID().String()]; !found {
-				if st, _, err := getState(currency.StateKeyBalance(exchangeCurrencyFeeer.Receiver(), v.ExchangeCID())); err != nil {
-					return err
-				} else {
-					ra := currency.NewAmountState(st, v.ExchangeCID())
-					nra := ra.Add(v.ExchangeMin())
-					rb[v.ExchangeCID().String()] = nra
-				}
+			if amountst, found := fixedReceiverBalance[f.ExchangeCID().String()]; !found {
+				ra := currency.NewAmountState(exchangeCurrencyReceiverAmountState, f.ExchangeCID())
+				nra := ra.Add(f.ExchangeMin())
+				fixedReceiverBalance[f.ExchangeCID().String()] = nra
 			} else {
-				ra := amountst.Add(v.ExchangeMin())
-				rb[v.ExchangeCID().String()] = ra
+				ra := amountst.Add(f.ExchangeMin())
+				fixedReceiverBalance[f.ExchangeCID().String()] = ra
 			}
-
-			if amountst, found := fb[am.Currency().String()+v.ExchangeCID().String()]; !found {
-				id := extensioncurrency.ContractID(am.Currency().String())
-				if st, _, err := getState(extensioncurrency.StateKeyBalance(v.Feefier(), id, v.ExchangeCID(), StateKeyBalanceSuffix)); err != nil {
-					return err
-				} else {
-					sa := extensioncurrency.NewAmountState(st, v.ExchangeCID(), id)
-					nsa := sa.Sub(v.ExchangeMin())
-					fb[am.Currency().String()+v.ExchangeCID().String()] = nsa
-				}
-			} else {
-				sa := amountst.Sub(v.ExchangeMin())
-				fb[am.Currency().String()+v.ExchangeCID().String()] = sa
-			}
-
 		default:
 			return errors.Errorf("unknown feeer type, %q", t)
 		}
 	}
 
-	if len(rb) > 0 {
-		for k := range rb {
-			am := rb[k]
+	if len(fixedReceiverBalance) > 0 {
+		for k := range fixedReceiverBalance {
+			am := fixedReceiverBalance[k]
 			sts = append(sts, am)
 		}
 	}
 
-	if len(fb) > 0 {
-		for k := range fb {
-			am := fb[k]
+	if len(feefiFeefierBalance) > 0 {
+		for k := range feefiFeefierBalance {
+			am := feefiFeefierBalance[k]
+			sts = append(sts, am)
+		}
+	}
+
+	if len(feefiReceiverBalance) > 0 {
+		for k := range feefiReceiverBalance {
+			am := feefiReceiverBalance[k]
 			sts = append(sts, am)
 		}
 	}

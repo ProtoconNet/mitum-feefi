@@ -162,8 +162,18 @@ func (fp Pool) IncomeBalance() currency.Amount {
 	return fp.prevIncomeAmount
 }
 
+func (fp Pool) SetIncomeBalance(v currency.Amount) Pool {
+	fp.prevIncomeAmount = v
+	return fp
+}
+
 func (fp Pool) OutlayBalance() currency.Amount {
 	return fp.prevOutlayAmount
+}
+
+func (fp Pool) SetOutlayBalance(v currency.Amount) Pool {
+	fp.prevOutlayAmount = v
+	return fp
 }
 
 func (fp Pool) Equal(b Pool) bool {
@@ -184,6 +194,11 @@ func (fp Pool) Equal(b Pool) bool {
 	}
 
 	return true
+}
+
+func (fp Pool) WithUsers(users map[string]PoolUserBalance) Pool {
+	fp.users = users
+	return fp
 }
 
 /*

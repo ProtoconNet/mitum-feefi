@@ -1,10 +1,9 @@
-package currency
+package feefi
 
 import (
 	"sync"
 
 	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
-	"github.com/ProtoconNet/mitum-feefi/feefi"
 	"github.com/pkg/errors"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
@@ -13,33 +12,37 @@ import (
 	"github.com/spikeekips/mitum/util/valuehash"
 )
 
-var createAccountsItemProcessorPool = sync.Pool{
+var createContractAccountsItemProcessorPool = sync.Pool{
 	New: func() interface{} {
-		return new(CreateAccountsItemProcessor)
+		return new(CreateContractAccountsItemProcessor)
 	},
 }
 
-var createAccountsProcessorPool = sync.Pool{
+var createContractAccountsProcessorPool = sync.Pool{
 	New: func() interface{} {
-		return new(CreateAccountsProcessor)
+		return new(CreateContractAccountsProcessor)
 	},
 }
 
-type CreateAccountsItemProcessor struct {
-	cp   *extensioncurrency.CurrencyPool
-	h    valuehash.Hash
-	item currency.CreateAccountsItem
-	ns   state.State
-	nb   map[currency.CurrencyID]currency.AmountState
+type CreateContractAccountsItemProcessor struct {
+	cp     *CurrencyPool
+	h      valuehash.Hash
+	sender base.Address
+	item   extensioncurrency.CreateContractAccountsItem
+	ns     state.State                                  // target account(contract account) state
+	oas    state.State                                  // contract account status state
+	oac    currency.Account                             // owner account value
+	nb     map[currency.CurrencyID]currency.AmountState // target account amount state
 }
 
-func (opp *CreateAccountsItemProcessor) PreProcess(
+func (opp *CreateContractAccountsItemProcessor) PreProcess(
 	getState func(key string) (state.State, bool, error),
 	_ func(valuehash.Hash, ...state.State) error,
 ) error {
 	for i := range opp.item.Amounts() {
 		am := opp.item.Amounts()[i]
 
+		// check currency registered
 		var policy extensioncurrency.CurrencyPolicy
 		if opp.cp != nil {
 			i, found := opp.cp.Policy(am.Currency())
@@ -49,6 +52,7 @@ func (opp *CreateAccountsItemProcessor) PreProcess(
 			policy = i
 		}
 
+		// check minimum balance
 		if am.Big().Compare(policy.NewAccountMinBalance()) < 0 {
 			return operation.NewBaseReasonError(
 				"amount should be over minimum balance, %v < %v", am.Big(), policy.NewAccountMinBalance())
@@ -60,12 +64,35 @@ func (opp *CreateAccountsItemProcessor) PreProcess(
 		return operation.NewBaseReasonErrorFromError(err)
 	}
 
+	// check not existence of target account state
+	// keep target account state
 	st, err := notExistsState(currency.StateKeyAccount(target), "keys of target", getState)
 	if err != nil {
 		return err
 	}
 	opp.ns = st
 
+	// check existence of owner account state
+	// keep owner account value
+	st, err = existsState(currency.StateKeyAccount(opp.sender), "account of owner", getState)
+	if err != nil {
+		return err
+	}
+	oac, err := currency.LoadStateAccountValue(st)
+	if err != nil {
+		return err
+	}
+	opp.oac = oac
+
+	// check not existence of contract account status state
+	// keep contract account status state
+	st, err = notExistsState(extensioncurrency.StateKeyContractAccount(target), "contract account status", getState)
+	if err != nil {
+		return err
+	}
+	opp.oas = st
+
+	// prepare and keep target account balance value
 	nb := map[currency.CurrencyID]currency.AmountState{}
 	for i := range opp.item.Amounts() {
 		am := opp.item.Amounts()[i]
@@ -81,61 +108,79 @@ func (opp *CreateAccountsItemProcessor) PreProcess(
 	return nil
 }
 
-func (opp *CreateAccountsItemProcessor) Process(
+func (opp *CreateContractAccountsItemProcessor) Process(
 	_ func(key string) (state.State, bool, error),
 	_ func(valuehash.Hash, ...state.State) error,
 ) ([]state.State, error) {
+	// new target account from keys and remove keys
 	nac, err := currency.NewAccountFromKeys(opp.item.Keys())
+	ks := NewContractAccountKeys()
+	ncac, err := nac.SetKeys(ks)
+	if err != nil {
+		return nil, err
+	}
+	// count of states except amount states
+	statesCount := 2
+	// set target account value to state
+	sts := make([]state.State, len(opp.item.Amounts())+statesCount)
+	nst, err := currency.SetStateAccountValue(opp.ns, ncac)
+	if err != nil {
+		return nil, err
+	}
+	cas := extensioncurrency.NewContractAccount(opp.oac.Address(), true)
+	// set contract account status value to state
+	ost, err := extensioncurrency.SetStateContractAccountValue(opp.oas, cas)
 	if err != nil {
 		return nil, operation.NewBaseReasonErrorFromError(err)
 	}
 
-	sts := make([]state.State, len(opp.item.Amounts())+1)
-	st, err := currency.SetStateAccountValue(opp.ns, nac)
-	if err != nil {
-		return nil, err
-	}
-	sts[0] = st
-
+	// add target account state and contract account owner state to states
+	sts[0] = nst
+	sts[1] = ost
+	// calculate target account balance value
+	// add target balance state to states
 	for i := range opp.item.Amounts() {
 		am := opp.item.Amounts()[i]
-		sts[i+1] = opp.nb[am.Currency()].Add(am.Big())
+		sts[i+statesCount] = opp.nb[am.Currency()].Add(am.Big())
 	}
 
 	return sts, nil
 }
 
-func (opp *CreateAccountsItemProcessor) Close() error {
+func (opp *CreateContractAccountsItemProcessor) Close() error {
 	opp.cp = nil
 	opp.h = nil
+	opp.sender = nil
 	opp.item = nil
 	opp.ns = nil
+	opp.oas = nil
+	opp.oac = currency.Account{}
 	opp.nb = nil
 
-	createAccountsItemProcessorPool.Put(opp)
+	createContractAccountsItemProcessorPool.Put(opp)
 
 	return nil
 }
 
-type CreateAccountsProcessor struct {
-	cp *extensioncurrency.CurrencyPool
-	currency.CreateAccounts
+type CreateContractAccountsProcessor struct {
+	cp *CurrencyPool
+	extensioncurrency.CreateContractAccounts
 	sb       map[currency.CurrencyID]currency.AmountState
-	ns       []*CreateAccountsItemProcessor
+	ns       []*CreateContractAccountsItemProcessor
 	required map[currency.CurrencyID][2]currency.Big
 }
 
-func NewCreateAccountsProcessor(cp *extensioncurrency.CurrencyPool) currency.GetNewProcessor {
+func NewCreateContractAccountsProcessor(cp *CurrencyPool) currency.GetNewProcessor {
 	return func(op state.Processor) (state.Processor, error) {
-		i, ok := op.(currency.CreateAccounts)
+		i, ok := op.(extensioncurrency.CreateContractAccounts)
 		if !ok {
-			return nil, errors.Errorf("not CreateAccounts, %T", op)
+			return nil, errors.Errorf("not CreateContractAccounts, %T", op)
 		}
 
-		opp := createAccountsProcessorPool.Get().(*CreateAccountsProcessor)
+		opp := createContractAccountsProcessorPool.Get().(*CreateContractAccountsProcessor)
 
 		opp.cp = cp
-		opp.CreateAccounts = i
+		opp.CreateContractAccounts = i
 		opp.sb = nil
 		opp.ns = nil
 		opp.required = nil
@@ -144,11 +189,11 @@ func NewCreateAccountsProcessor(cp *extensioncurrency.CurrencyPool) currency.Get
 	}
 }
 
-func (opp *CreateAccountsProcessor) PreProcess(
+func (opp *CreateContractAccountsProcessor) PreProcess(
 	getState func(key string) (state.State, bool, error),
 	setState func(valuehash.Hash, ...state.State) error,
 ) (state.Processor, error) {
-	fact := opp.Fact().(currency.CreateAccountsFact)
+	fact := opp.Fact().(extensioncurrency.CreateContractAccountsFact)
 
 	if err := checkExistsState(currency.StateKeyAccount(fact.Sender()), getState); err != nil {
 		return nil, err
@@ -163,11 +208,12 @@ func (opp *CreateAccountsProcessor) PreProcess(
 		opp.sb = sb
 	}
 
-	ns := make([]*CreateAccountsItemProcessor, len(fact.Items()))
+	ns := make([]*CreateContractAccountsItemProcessor, len(fact.Items()))
 	for i := range fact.Items() {
-		c := createAccountsItemProcessorPool.Get().(*CreateAccountsItemProcessor)
+		c := createContractAccountsItemProcessorPool.Get().(*CreateContractAccountsItemProcessor)
 		c.cp = opp.cp
 		c.h = opp.Hash()
+		c.sender = fact.Sender()
 		c.item = fact.Items()[i]
 
 		if err := c.PreProcess(getState, setState); err != nil {
@@ -186,11 +232,11 @@ func (opp *CreateAccountsProcessor) PreProcess(
 	return opp, nil
 }
 
-func (opp *CreateAccountsProcessor) Process( // nolint:dupl
+func (opp *CreateContractAccountsProcessor) Process( // nolint:dupl
 	getState func(key string) (state.State, bool, error),
 	setState func(valuehash.Hash, ...state.State) error,
 ) error {
-	fact := opp.Fact().(currency.CreateAccountsFact)
+	fact := opp.Fact().(extensioncurrency.CreateContractAccountsFact)
 
 	var sts []state.State // nolint:prealloc
 	for i := range opp.ns {
@@ -209,21 +255,21 @@ func (opp *CreateAccountsProcessor) Process( // nolint:dupl
 	return setState(fact.Hash(), sts...)
 }
 
-func (opp *CreateAccountsProcessor) Close() error {
+func (opp *CreateContractAccountsProcessor) Close() error {
 	for i := range opp.ns {
 		_ = opp.ns[i].Close()
 	}
 
 	opp.cp = nil
-	opp.CreateAccounts = currency.CreateAccounts{}
+	opp.CreateContractAccounts = extensioncurrency.CreateContractAccounts{}
 
-	createAccountsProcessorPool.Put(opp)
+	createContractAccountsProcessorPool.Put(opp)
 
 	return nil
 }
 
-func (opp *CreateAccountsProcessor) calculateItemsFee(getState func(key string) (state.State, bool, error)) (map[currency.CurrencyID][2]currency.Big, error) {
-	fact := opp.Fact().(currency.CreateAccountsFact)
+func (opp *CreateContractAccountsProcessor) calculateItemsFee(getState func(key string) (state.State, bool, error)) (map[currency.CurrencyID][2]currency.Big, error) {
+	fact := opp.Fact().(extensioncurrency.CreateContractAccountsFact)
 
 	items := make([]currency.AmountsItem, len(fact.Items()))
 	for i := range fact.Items() {
@@ -233,7 +279,8 @@ func (opp *CreateAccountsProcessor) calculateItemsFee(getState func(key string) 
 	return CalculateItemsFee(opp.cp, items, getState)
 }
 
-func CalculateItemsFee(cp *extensioncurrency.CurrencyPool, items []currency.AmountsItem, getState func(key string) (state.State, bool, error)) (map[currency.CurrencyID][2]currency.Big, error) {
+/*
+func CalculateItemsFee(cp *extensioncurrency.CurrencyPool, items []AmountsItem) (map[currency.CurrencyID][2]currency.Big, error) {
 	required := map[currency.CurrencyID][2]currency.Big{}
 
 	for i := range items {
@@ -253,37 +300,16 @@ func CalculateItemsFee(cp *extensioncurrency.CurrencyPool, items []currency.Amou
 				continue
 			}
 
-			f, found := cp.Feeer(am.Currency())
+			feeer, found := cp.Feeer(am.Currency())
 			if !found {
 				return nil, errors.Errorf("unknown currency id found, %q", am.Currency())
 			}
-			// 수정
-			feeer, ok := f.(feefi.FeefiFeeer)
-			id := extensioncurrency.ContractID(am.Currency().String())
-			var k currency.Big
-			if ok {
-				st, err := existsState(feefi.StateKeyDesign(feeer.Feefier(), id), "feefi design", getState)
-				if err != nil {
-					return nil, err
-				}
-				design, err := feefi.StateDesignValue(st)
-				if err != nil {
-					return nil, err
-				}
-				if design.Policy().Fee().Currency() != am.Currency() {
-					return nil, errors.Errorf("feefi design fee currency id, %q not matched with %q", design.Policy().Fee().Currency(), am.Currency())
-				}
-				k = design.Policy().Fee().Big()
-			} else {
-				var err error
-				switch k, err = f.Fee(am.Big()); {
-				case err != nil:
-					return nil, err
-				}
-			}
-			if !k.OverZero() {
+			switch k, err := feeer.Fee(am.Big()); {
+			case err != nil:
+				return nil, err
+			case !k.OverZero():
 				required[am.Currency()] = [2]currency.Big{rq[0].Add(am.Big()), rq[1]}
-			} else {
+			default:
 				required[am.Currency()] = [2]currency.Big{rq[0].Add(am.Big()).Add(k), rq[1].Add(k)}
 			}
 		}
@@ -296,8 +322,8 @@ func CheckEnoughBalance(
 	holder base.Address,
 	required map[currency.CurrencyID][2]currency.Big,
 	getState func(key string) (state.State, bool, error),
-) (map[currency.CurrencyID]currency.AmountState, error) {
-	sb := map[currency.CurrencyID]currency.AmountState{}
+) (map[currency.CurrencyID]AmountState, error) {
+	sb := map[currency.CurrencyID]AmountState{}
 
 	for cid := range required {
 		rq := required[cid]
@@ -321,3 +347,4 @@ func CheckEnoughBalance(
 
 	return sb, nil
 }
+*/

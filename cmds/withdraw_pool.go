@@ -92,7 +92,7 @@ func (cmd *WithdrawPoolCommand) createOperation() (operation.Operation, error) {
 		ams[i] = am
 	}
 
-	fact := feefi.NewWithdrawsFact([]byte(cmd.Token), cmd.sender, cmd.pool, cmd.PoolID.ID, ams)
+	fact := feefi.NewPoolWithdrawsFact([]byte(cmd.Token), cmd.sender, cmd.pool, cmd.PoolID.ID, ams)
 
 	var fs []base.FactSign
 	sig, err := base.NewFactSignature(cmd.Privatekey, fact, cmd.NetworkID.NetworkID())
@@ -101,7 +101,7 @@ func (cmd *WithdrawPoolCommand) createOperation() (operation.Operation, error) {
 	}
 	fs = append(fs, base.NewBaseFactSign(cmd.Privatekey.Publickey(), sig))
 
-	op, err := feefi.NewWithdraws(fact, fs, cmd.Memo)
+	op, err := feefi.NewPoolWithdraws(fact, fs, cmd.Memo)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create withdraws operation")
 	}

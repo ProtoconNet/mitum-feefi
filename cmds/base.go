@@ -13,7 +13,6 @@ import (
 	"gopkg.in/yaml.v3"
 
 	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
-	feeficurrency "github.com/ProtoconNet/mitum-feefi/currency"
 	"github.com/ProtoconNet/mitum-feefi/digest"
 	"github.com/ProtoconNet/mitum-feefi/feefi"
 	currencycmds "github.com/spikeekips/mitum-currency/cmds"
@@ -80,7 +79,7 @@ func HookLoadCurrencies(ctx context.Context) (context.Context, error) {
 	if err := config.LoadLogContextValue(ctx, &log); err != nil {
 		return ctx, err
 	}
-
+	fmt.Println("1111111111111111111111111111111")
 	log.Log().Debug().Msg("loading currencies from mitum database")
 
 	var st *mongodbstorage.Database
@@ -88,10 +87,11 @@ func HookLoadCurrencies(ctx context.Context) (context.Context, error) {
 		return ctx, err
 	}
 
-	cp := extensioncurrency.NewCurrencyPool()
-
+	cp := feefi.NewCurrencyPool()
+	fmt.Println("222222222222222222222222222222")
 	if err := digest.LoadCurrenciesFromDatabase(st, base.NilHeight, func(sta state.State) (bool, error) {
 		if err := cp.Set(sta); err != nil {
+			fmt.Println("333333333333333333333333333333333")
 			return false, err
 		}
 		log.Log().Debug().Interface("currency", sta).Msg("currency loaded from mitum database")
@@ -131,7 +131,7 @@ func HookInitializeProposalProcessor(ctx context.Context) (context.Context, erro
 		return ctx, err
 	}
 
-	var cp *extensioncurrency.CurrencyPool
+	var cp *feefi.CurrencyPool
 	if err := LoadCurrencyPoolContextValue(ctx, &cp); err != nil {
 		return ctx, err
 	}
@@ -150,22 +150,22 @@ func AttachProposalProcessor(
 	policy *isaac.LocalPolicy,
 	nodepool *network.Nodepool,
 	suffrage base.Suffrage,
-	cp *extensioncurrency.CurrencyPool,
+	cp *feefi.CurrencyPool,
 ) (*operation.OperationProcessor, error) {
 	opr := operation.NewOperationProcessor(cp)
-	if _, err := opr.SetProcessor(currency.CreateAccountsHinter, feeficurrency.NewCreateAccountsProcessor(cp)); err != nil {
+	if _, err := opr.SetProcessor(currency.CreateAccountsHinter, feefi.NewCreateAccountsProcessor(cp)); err != nil {
 		return nil, err
-	} else if _, err := opr.SetProcessor(currency.KeyUpdaterHinter, feeficurrency.NewKeyUpdaterProcessor(cp)); err != nil {
+	} else if _, err := opr.SetProcessor(currency.KeyUpdaterHinter, feefi.NewKeyUpdaterProcessor(cp)); err != nil {
 		return nil, err
-	} else if _, err := opr.SetProcessor(currency.TransfersHinter, feeficurrency.NewTransfersProcessor(cp)); err != nil {
+	} else if _, err := opr.SetProcessor(currency.TransfersHinter, feefi.NewTransfersProcessor(cp)); err != nil {
 		return nil, err
-	} else if _, err := opr.SetProcessor(extensioncurrency.CreateContractAccountsHinter, extensioncurrency.NewCreateContractAccountsProcessor(cp)); err != nil {
+	} else if _, err := opr.SetProcessor(extensioncurrency.CreateContractAccountsHinter, feefi.NewCreateContractAccountsProcessor(cp)); err != nil {
 		return nil, err
-	} else if _, err := opr.SetProcessor(extensioncurrency.WithdrawsHinter, extensioncurrency.NewWithdrawsProcessor(cp)); err != nil {
+	} else if _, err := opr.SetProcessor(extensioncurrency.WithdrawsHinter, feefi.NewWithdrawsProcessor(cp)); err != nil {
 		return nil, err
 	} else if _, err := opr.SetProcessor(feefi.DepositHinter, feefi.NewDepositsProcessor(cp)); err != nil {
 		return nil, err
-	} else if _, err := opr.SetProcessor(feefi.WithdrawsHinter, feefi.NewWithdrawsProcessor(cp)); err != nil {
+	} else if _, err := opr.SetProcessor(feefi.PoolWithdrawsHinter, feefi.NewPoolWithdrawsProcessor(cp)); err != nil {
 		return nil, err
 	} else if _, err := opr.SetProcessor(feefi.PoolRegisterHinter, feefi.NewPoolRegisterProcessor(cp)); err != nil {
 		return nil, err
@@ -189,19 +189,19 @@ func AttachProposalProcessor(
 	}
 
 	if _, err := opr.SetProcessor(extensioncurrency.CurrencyRegisterHinter,
-		feeficurrency.NewCurrencyRegisterProcessor(cp, pubs, threshold),
+		feefi.NewCurrencyRegisterProcessor(cp, pubs, threshold),
 	); err != nil {
 		return nil, err
 	}
 
 	if _, err := opr.SetProcessor(extensioncurrency.CurrencyPolicyUpdaterHinter,
-		feeficurrency.NewCurrencyPolicyUpdaterProcessor(cp, pubs, threshold),
+		feefi.NewCurrencyPolicyUpdaterProcessor(cp, pubs, threshold),
 	); err != nil {
 		return nil, err
 	}
 
 	if _, err := opr.SetProcessor(extensioncurrency.SuffrageInflationHinter,
-		extensioncurrency.NewSuffrageInflationProcessor(cp, pubs, threshold),
+		feefi.NewSuffrageInflationProcessor(cp, pubs, threshold),
 	); err != nil {
 		return nil, err
 	}
@@ -233,7 +233,7 @@ func InitializeProposalProcessor(ctx context.Context, opr *operation.OperationPr
 		extensioncurrency.CreateContractAccountsHinter,
 		extensioncurrency.WithdrawsHinter,
 		feefi.DepositHinter,
-		feefi.WithdrawsHinter,
+		feefi.PoolWithdrawsHinter,
 		feefi.PoolRegisterHinter,
 		feefi.PoolPolicyUpdaterHinter,
 	} {

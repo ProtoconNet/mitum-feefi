@@ -1,10 +1,9 @@
-package currency
+package feefi
 
 import (
 	"sync"
 
 	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
-	"github.com/ProtoconNet/mitum-feefi/feefi"
 	"github.com/pkg/errors"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base/operation"
@@ -19,14 +18,14 @@ var keyUpdaterProcessorPool = sync.Pool{
 }
 
 type KeyUpdaterProcessor struct {
-	cp *extensioncurrency.CurrencyPool
+	cp *CurrencyPool
 	currency.KeyUpdater
 	sa  state.State
 	sb  currency.AmountState
 	fee currency.Big
 }
 
-func NewKeyUpdaterProcessor(cp *extensioncurrency.CurrencyPool) currency.GetNewProcessor {
+func NewKeyUpdaterProcessor(cp *CurrencyPool) currency.GetNewProcessor {
 	return func(op state.Processor) (state.Processor, error) {
 		i, ok := op.(currency.KeyUpdater)
 		if !ok {
@@ -78,16 +77,16 @@ func (opp *KeyUpdaterProcessor) PreProcess(
 		return nil, operation.NewBaseReasonError("currency, %q not found of KeyUpdater", fact.Currency())
 	}
 	// 수정
-	feeer, ok := f.(feefi.FeefiFeeer)
+	feeer, ok := f.(FeefiFeeer)
 	cid := fact.Currency()
 	id := extensioncurrency.ContractID(cid.String())
 	var fee currency.Big
 	if ok {
-		st, err := existsState(feefi.StateKeyDesign(feeer.Feefier(), id), "feefi design", getState)
+		st, err := existsState(StateKeyPoolDesign(feeer.Feefier(), id), "feefi design", getState)
 		if err != nil {
 			return nil, operation.NewBaseReasonErrorFromError(err)
 		}
-		design, err := feefi.StateDesignValue(st)
+		design, err := StatePoolDesignValue(st)
 		if err != nil {
 			return nil, operation.NewBaseReasonErrorFromError(err)
 		}

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
+	"github.com/ProtoconNet/mitum-feefi/feefi"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
@@ -97,7 +97,7 @@ type Handlers struct {
 	enc             encoder.Encoder
 	database        *Database
 	cache           Cache
-	cp              *extensioncurrency.CurrencyPool
+	cp              *feefi.CurrencyPool
 	nodeInfoHandler network.NodeInfoHandler
 	send            func(interface{}) (seal.Seal, error)
 	router          *mux.Router
@@ -115,7 +115,7 @@ func NewHandlers(
 	enc encoder.Encoder,
 	st *Database,
 	cache Cache,
-	cp *extensioncurrency.CurrencyPool,
+	cp *feefi.CurrencyPool,
 ) *Handlers {
 	return &Handlers{
 		Logging: logging.NewLogging(func(c zerolog.Context) zerolog.Context {

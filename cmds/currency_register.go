@@ -147,7 +147,7 @@ func (fl *CurrencyDesignFlags) IsValid([]byte) error {
 		return err
 	}
 
-	var feeer feefi.Feeer
+	var feeer extensioncurrency.Feeer
 	switch t := fl.FeeerString; t {
 	case extensioncurrency.FeeerNil, "":
 		feeer = extensioncurrency.NewNilFeeer()

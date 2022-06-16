@@ -9,7 +9,7 @@ import (
 	"github.com/spikeekips/mitum/util/valuehash"
 )
 
-func (fact WithdrawsFact) MarshalBSON() ([]byte, error) {
+func (fact PoolWithdrawsFact) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(
 		bsonenc.MergeBSONM(bsonenc.NewHintedDoc(fact.Hint()),
 			bson.M{
@@ -31,7 +31,7 @@ type WithdrawsFactBSONUnpacker struct {
 	AM bson.Raw            `bson:"amounts"`
 }
 
-func (fact *WithdrawsFact) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
+func (fact *PoolWithdrawsFact) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
 	var ufact WithdrawsFactBSONUnpacker
 	if err := enc.Unmarshal(b, &ufact); err != nil {
 		return err
@@ -40,7 +40,7 @@ func (fact *WithdrawsFact) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
 	return fact.unpack(enc, ufact.H, ufact.TK, ufact.SD, ufact.PL, ufact.CI, ufact.AM)
 }
 
-func (op *Withdraws) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
+func (op *PoolWithdraws) UnpackBSON(b []byte, enc *bsonenc.Encoder) error {
 	var ubo currency.BaseOperation
 	if err := ubo.UnpackBSON(b, enc); err != nil {
 		return err

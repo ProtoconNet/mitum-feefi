@@ -82,7 +82,7 @@ type FeefiDesignDoc struct {
 }
 
 func NewFeefiDesignDoc(st state.State, enc encoder.Encoder) (FeefiDesignDoc, error) {
-	de, err := feefi.StateDesignValue(st)
+	de, err := feefi.StatePoolDesignValue(st)
 	if err != nil {
 		return FeefiDesignDoc{}, errors.Wrap(err, "feefiDesignDoc needs feefi design state")
 	}
@@ -105,7 +105,7 @@ func (doc FeefiDesignDoc) MarshalBSON() ([]byte, error) {
 		return nil, err
 	}
 
-	address := doc.st.Key()[:len(doc.st.Key())-len(feefi.StateKeyDesignSuffix)-len(doc.de.Policy().Fee().Currency())-1]
+	address := doc.st.Key()[:len(doc.st.Key())-len(feefi.StateKeyPoolDesignSuffix)-len(doc.de.Policy().Fee().Currency())-1]
 	m["feefipoolid"] = doc.de.Policy().Fee().Currency().String()
 	m["address"] = address
 	m["height"] = doc.st.Height()

@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/ProtoconNet/mitum-feefi/feefi"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/state"
 	mongodbstorage "github.com/spikeekips/mitum/storage/mongodb"
@@ -26,7 +26,7 @@ func LoadCurrenciesFromDatabase(
 	var keys []string
 	for {
 		filter := util.NewBSONFilter("key", bson.M{
-			"$regex": fmt.Sprintf(`^%s`, regexp.QuoteMeta(extensioncurrency.StateKeyCurrencyDesignPrefix)),
+			"$regex": fmt.Sprintf(`^%s`, regexp.QuoteMeta(feefi.StateKeyCurrencyDesignPrefix)),
 		}).Add("height", bson.M{"$gte": height})
 
 		var q primitive.D

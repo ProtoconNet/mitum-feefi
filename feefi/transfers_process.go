@@ -1,9 +1,8 @@
-package currency
+package feefi
 
 import (
 	"sync"
 
-	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
 	"github.com/pkg/errors"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base/operation"
@@ -24,7 +23,7 @@ var transfersProcessorPool = sync.Pool{
 }
 
 type TransfersItemProcessor struct {
-	cp *extensioncurrency.CurrencyPool
+	cp *CurrencyPool
 	h  valuehash.Hash
 
 	item currency.TransfersItem
@@ -87,14 +86,14 @@ func (opp *TransfersItemProcessor) Close() error {
 }
 
 type TransfersProcessor struct {
-	cp *extensioncurrency.CurrencyPool
+	cp *CurrencyPool
 	currency.Transfers
 	sb       map[currency.CurrencyID]currency.AmountState
 	rb       []*TransfersItemProcessor
 	required map[currency.CurrencyID][2]currency.Big
 }
 
-func NewTransfersProcessor(cp *extensioncurrency.CurrencyPool) currency.GetNewProcessor {
+func NewTransfersProcessor(cp *CurrencyPool) currency.GetNewProcessor {
 	return func(op state.Processor) (state.Processor, error) {
 		i, ok := op.(currency.Transfers)
 		if !ok {

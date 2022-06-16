@@ -3,8 +3,8 @@ package cmds
 import (
 	"context"
 
-	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
 	"github.com/ProtoconNet/mitum-feefi/digest"
+	"github.com/ProtoconNet/mitum-feefi/feefi"
 	"github.com/pkg/errors"
 
 	"github.com/spikeekips/mitum/base"
@@ -137,7 +137,7 @@ func digestFollowup(ctx context.Context, height base.Height) error {
 		return err
 	}
 
-	var cp *extensioncurrency.CurrencyPool
+	var cp *feefi.CurrencyPool
 	if err := LoadCurrencyPoolContextValue(ctx, &cp); err != nil {
 		return err
 	}

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
 	"github.com/ProtoconNet/mitum-feefi/digest"
+	"github.com/ProtoconNet/mitum-feefi/feefi"
 	"github.com/pkg/errors"
 
 	"github.com/spikeekips/mitum/base"
@@ -105,7 +105,7 @@ func (cmd *RunCommand) hookSetStateHandler(ctx context.Context) (context.Context
 		return ctx, err
 	}
 
-	var cp *extensioncurrency.CurrencyPool
+	var cp *feefi.CurrencyPool
 	if err := LoadCurrencyPoolContextValue(ctx, &cp); err != nil {
 		return ctx, err
 	}
@@ -126,7 +126,7 @@ func (cmd *RunCommand) hookSetStateHandler(ctx context.Context) (context.Context
 
 func (cmd *RunCommand) whenBlockSaved(
 	st *mongodbstorage.Database,
-	cp *extensioncurrency.CurrencyPool,
+	cp *feefi.CurrencyPool,
 	di *digest.Digester,
 ) pm.ProcessFunc {
 	return func(ctx context.Context) (context.Context, error) {
@@ -235,7 +235,7 @@ func (cmd *RunCommand) setDigestHandlers(
 		return nil, err
 	}
 
-	var cp *extensioncurrency.CurrencyPool
+	var cp *feefi.CurrencyPool
 	if err := LoadCurrencyPoolContextValue(ctx, &cp); err != nil {
 		return nil, err
 	}

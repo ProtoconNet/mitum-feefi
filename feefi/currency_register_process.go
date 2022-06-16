@@ -1,10 +1,9 @@
-package currency
+package feefi
 
 import (
 	"sync"
 
 	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
-	"github.com/ProtoconNet/mitum-feefi/feefi"
 	"github.com/pkg/errors"
 	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
@@ -22,14 +21,14 @@ var currencyRegisterProcessorPool = sync.Pool{
 
 type CurrencyRegisterProcessor struct {
 	extensioncurrency.CurrencyRegister
-	cp        *extensioncurrency.CurrencyPool
+	cp        *CurrencyPool
 	pubs      []key.Publickey
 	threshold base.Threshold
 	ga        currency.AmountState
 	de        state.State
 }
 
-func NewCurrencyRegisterProcessor(cp *extensioncurrency.CurrencyPool, pubs []key.Publickey, threshold base.Threshold) currency.GetNewProcessor {
+func NewCurrencyRegisterProcessor(cp *CurrencyPool, pubs []key.Publickey, threshold base.Threshold) currency.GetNewProcessor {
 	return func(op state.Processor) (state.Processor, error) {
 		i, ok := op.(extensioncurrency.CurrencyRegister)
 		if !ok {
@@ -84,7 +83,7 @@ func (opp *CurrencyRegisterProcessor) PreProcess(
 		return nil, errors.Wrap(err, "feeer receiver account is contract account")
 	}
 
-	f, ok := item.Policy().Feeer().(feefi.FeefiFeeer)
+	f, ok := item.Policy().Feeer().(FeefiFeeer)
 	if ok {
 		if err := checkExistsState(currency.StateKeyAccount(f.Feefier()), getState); err != nil {
 			return nil, errors.Wrap(err, "feeer feefier account not found")
@@ -95,13 +94,13 @@ func (opp *CurrencyRegisterProcessor) PreProcess(
 			return nil, errors.Wrap(err, "feeer feefier account is not contract account")
 		}
 		// check whether feeer feefier pool is registered
-		err = checkExistsState(feefi.StateKeyPool(f.Feefier(), extensioncurrency.ContractID(item.Currency())), getState)
+		err = checkExistsState(StateKeyPool(f.Feefier(), extensioncurrency.ContractID(item.Currency())), getState)
 		if err != nil {
 			return nil, errors.Wrap(err, "feeer feefier pool is not registered")
 		}
 	}
 
-	switch st, found, err := getState(extensioncurrency.StateKeyCurrencyDesign(item.Currency())); {
+	switch st, found, err := getState(StateKeyCurrencyDesign(item.Currency())); {
 	case err != nil:
 		return nil, err
 	case found:
@@ -131,7 +130,7 @@ func (opp *CurrencyRegisterProcessor) Process(
 	sts := make([]state.State, 4)
 
 	sts[0] = opp.ga.Add(fact.Currency().Big())
-	i, err := extensioncurrency.SetStateCurrencyDesignValue(opp.de, fact.Currency())
+	i, err := SetStateCurrencyDesignValue(opp.de, fact.Currency())
 	if err != nil {
 		return err
 	}

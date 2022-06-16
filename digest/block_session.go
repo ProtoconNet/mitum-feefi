@@ -228,7 +228,7 @@ func (bs *BlockSession) prepareAccounts() error {
 			}
 			feefiPoolModels = append(feefiPoolModels, j[0])
 			feefiPoolUsersModels = append(feefiPoolUsersModels, j[1])
-		case feefi.IsStateDesignKey(st.Key()):
+		case feefi.IsStatePoolDesignKey(st.Key()):
 			j, err := bs.handleFeefiDesignState(st)
 			if err != nil {
 				return err

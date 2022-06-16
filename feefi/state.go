@@ -6,6 +6,7 @@ import (
 
 	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
 	"github.com/pkg/errors"
+	"github.com/spikeekips/mitum-currency/currency"
 	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/base/operation"
 	"github.com/spikeekips/mitum/base/state"
@@ -13,9 +14,9 @@ import (
 )
 
 var (
-	StateKeyDesignSuffix  = ":feefidesign"
-	StateKeyPoolSuffix    = ":feefipool"
-	StateKeyBalanceSuffix = extensioncurrency.StateKeyBalanceSuffix(":feefibalance")
+	StateKeyPoolDesignSuffix = ":feefipooldesign"
+	StateKeyPoolSuffix       = ":feefipool"
+	StateKeyBalanceSuffix    = extensioncurrency.StateKeyBalanceSuffix(":feefibalance")
 )
 
 func statePoolKeyPrefix(a base.Address, poolID extensioncurrency.ContractID) string {
@@ -51,15 +52,15 @@ func setStatePoolValue(st state.State, v Pool) (state.State, error) {
 	return st.SetValue(uv)
 }
 
-func StateKeyDesign(a base.Address, poolID extensioncurrency.ContractID) string {
-	return fmt.Sprintf("%s%s", statePoolKeyPrefix(a, poolID), StateKeyDesignSuffix)
+func StateKeyPoolDesign(a base.Address, poolID extensioncurrency.ContractID) string {
+	return fmt.Sprintf("%s%s", statePoolKeyPrefix(a, poolID), StateKeyPoolDesignSuffix)
 }
 
-func IsStateDesignKey(key string) bool {
-	return strings.HasSuffix(key, StateKeyDesignSuffix)
+func IsStatePoolDesignKey(key string) bool {
+	return strings.HasSuffix(key, StateKeyPoolDesignSuffix)
 }
 
-func StateDesignValue(st state.State) (PoolDesign, error) {
+func StatePoolDesignValue(st state.State) (PoolDesign, error) {
 	v := st.Value()
 	if v == nil {
 		return PoolDesign{}, util.NotFoundError.Errorf("feefi pool design not found in State")
@@ -72,7 +73,37 @@ func StateDesignValue(st state.State) (PoolDesign, error) {
 	return s, nil
 }
 
-func setStateDesignValue(st state.State, v PoolDesign) (state.State, error) {
+func SetStatePoolDesignValue(st state.State, v PoolDesign) (state.State, error) {
+	uv, err := state.NewHintedValue(v)
+	if err != nil {
+		return nil, err
+	}
+	return st.SetValue(uv)
+}
+
+var StateKeyCurrencyDesignPrefix = "feeficurrencydesign:"
+
+func IsStateCurrencyDesignKey(key string) bool {
+	return strings.HasPrefix(key, StateKeyCurrencyDesignPrefix)
+}
+
+func StateKeyCurrencyDesign(cid currency.CurrencyID) string {
+	return fmt.Sprintf("%s%s", StateKeyCurrencyDesignPrefix, cid)
+}
+
+func StateCurrencyDesignValue(st state.State) (extensioncurrency.CurrencyDesign, error) {
+	v := st.Value()
+	if v == nil {
+		return extensioncurrency.CurrencyDesign{}, util.NotFoundError.Errorf("currency design not found in State")
+	}
+	s, ok := v.Interface().(extensioncurrency.CurrencyDesign)
+	if !ok {
+		return extensioncurrency.CurrencyDesign{}, errors.Errorf("invalid currency design value found, %T", v.Interface())
+	}
+	return s, nil
+}
+
+func SetStateCurrencyDesignValue(st state.State, v extensioncurrency.CurrencyDesign) (state.State, error) {
 	uv, err := state.NewHintedValue(v)
 	if err != nil {
 		return nil, err

@@ -11,19 +11,19 @@ import (
 )
 
 var (
-	WithdrawsFactType   = hint.Type("mitum-feefi-withdraw-operation-fact")
-	WithdrawsFactHint   = hint.NewHint(WithdrawsFactType, "v0.0.1")
-	WithdrawsFactHinter = WithdrawsFact{BaseHinter: hint.NewBaseHinter(WithdrawsFactHint)}
-	WithdrawsType       = hint.Type("mitum-feefi-withdraw-operation")
-	WithdrawsHint       = hint.NewHint(WithdrawsType, "v0.0.1")
-	WithdrawsHinter     = Withdraws{BaseOperation: operationHinter(WithdrawsHint)}
+	PoolWithdrawsFactType   = hint.Type("mitum-feefi-pool-withdraw-operation-fact")
+	PoolWithdrawsFactHint   = hint.NewHint(PoolWithdrawsFactType, "v0.0.1")
+	PoolWithdrawsFactHinter = PoolWithdrawsFact{BaseHinter: hint.NewBaseHinter(PoolWithdrawsFactHint)}
+	PoolWithdrawsType       = hint.Type("mitum-feefi-pool-withdraw-operation")
+	PoolWithdrawsHint       = hint.NewHint(PoolWithdrawsType, "v0.0.1")
+	PoolWithdrawsHinter     = PoolWithdraws{BaseOperation: operationHinter(PoolWithdrawsHint)}
 )
 
 var (
 	MaxWithdrawsAmount uint = 10
 )
 
-type WithdrawsFact struct {
+type PoolWithdrawsFact struct {
 	hint.BaseHinter
 	h       valuehash.Hash
 	token   []byte
@@ -33,9 +33,9 @@ type WithdrawsFact struct {
 	amounts []currency.Amount
 }
 
-func NewWithdrawsFact(token []byte, sender base.Address, pool base.Address, id extensioncurrency.ContractID, amounts []currency.Amount) WithdrawsFact {
-	fact := WithdrawsFact{
-		BaseHinter: hint.NewBaseHinter(WithdrawsFactHint),
+func NewPoolWithdrawsFact(token []byte, sender base.Address, pool base.Address, id extensioncurrency.ContractID, amounts []currency.Amount) PoolWithdrawsFact {
+	fact := PoolWithdrawsFact{
+		BaseHinter: hint.NewBaseHinter(PoolWithdrawsFactHint),
 		token:      token,
 		sender:     sender,
 		pool:       pool,
@@ -47,19 +47,19 @@ func NewWithdrawsFact(token []byte, sender base.Address, pool base.Address, id e
 	return fact
 }
 
-func (fact WithdrawsFact) Hash() valuehash.Hash {
+func (fact PoolWithdrawsFact) Hash() valuehash.Hash {
 	return fact.h
 }
 
-func (fact WithdrawsFact) GenerateHash() valuehash.Hash {
+func (fact PoolWithdrawsFact) GenerateHash() valuehash.Hash {
 	return valuehash.NewSHA256(fact.Bytes())
 }
 
-func (fact WithdrawsFact) Token() []byte {
+func (fact PoolWithdrawsFact) Token() []byte {
 	return fact.token
 }
 
-func (fact WithdrawsFact) Bytes() []byte {
+func (fact PoolWithdrawsFact) Bytes() []byte {
 	length := 4
 	bs := make([][]byte, len(fact.amounts)+length)
 	bs[0] = fact.token
@@ -73,7 +73,7 @@ func (fact WithdrawsFact) Bytes() []byte {
 	return util.ConcatBytesSlice(bs...)
 }
 
-func (fact WithdrawsFact) IsValid(b []byte) error {
+func (fact PoolWithdrawsFact) IsValid(b []byte) error {
 	if err := currency.IsValidOperationFact(fact, b); err != nil {
 		return err
 	}
@@ -107,23 +107,23 @@ func (fact WithdrawsFact) IsValid(b []byte) error {
 	return nil
 }
 
-func (fact WithdrawsFact) Sender() base.Address {
+func (fact PoolWithdrawsFact) Sender() base.Address {
 	return fact.sender
 }
 
-func (fact WithdrawsFact) Pool() base.Address {
+func (fact PoolWithdrawsFact) Pool() base.Address {
 	return fact.pool
 }
 
-func (fact WithdrawsFact) PoolID() extensioncurrency.ContractID {
+func (fact PoolWithdrawsFact) PoolID() extensioncurrency.ContractID {
 	return fact.poolID
 }
 
-func (fact WithdrawsFact) Amounts() []currency.Amount {
+func (fact PoolWithdrawsFact) Amounts() []currency.Amount {
 	return fact.amounts
 }
 
-func (fact WithdrawsFact) Addresses() ([]base.Address, error) {
+func (fact PoolWithdrawsFact) Addresses() ([]base.Address, error) {
 	as := make([]base.Address, 2)
 	as[0] = fact.sender
 	as[1] = fact.pool
@@ -131,18 +131,18 @@ func (fact WithdrawsFact) Addresses() ([]base.Address, error) {
 	return as, nil
 }
 
-type Withdraws struct {
+type PoolWithdraws struct {
 	currency.BaseOperation
 }
 
-func NewWithdraws(
-	fact WithdrawsFact,
+func NewPoolWithdraws(
+	fact PoolWithdrawsFact,
 	fs []base.FactSign,
 	memo string,
-) (Withdraws, error) {
-	bo, err := currency.NewBaseOperationFromFact(WithdrawsHint, fact, fs, memo)
+) (PoolWithdraws, error) {
+	bo, err := currency.NewBaseOperationFromFact(PoolWithdrawsHint, fact, fs, memo)
 	if err != nil {
-		return Withdraws{}, err
+		return PoolWithdraws{}, err
 	}
-	return Withdraws{BaseOperation: bo}, nil
+	return PoolWithdraws{BaseOperation: bo}, nil
 }

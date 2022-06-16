@@ -3,8 +3,8 @@ package cmds
 import (
 	"context"
 
-	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
 	"github.com/ProtoconNet/mitum-feefi/digest"
+	"github.com/ProtoconNet/mitum-feefi/feefi"
 	"github.com/spikeekips/mitum/util"
 
 	currencycmds "github.com/spikeekips/mitum-currency/cmds"
@@ -18,6 +18,6 @@ func LoadDigesterContextValue(ctx context.Context, l **digest.Digester) error {
 	return util.LoadFromContextValue(ctx, currencycmds.ContextValueDigester, l)
 }
 
-func LoadCurrencyPoolContextValue(ctx context.Context, l **extensioncurrency.CurrencyPool) error {
+func LoadCurrencyPoolContextValue(ctx context.Context, l **feefi.CurrencyPool) error {
 	return util.LoadFromContextValue(ctx, currencycmds.ContextValueCurrencyPool, l)
 }
