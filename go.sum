@@ -11,6 +11,8 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/DataDog/datadog-go v3.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
 github.com/ProtoconNet/mitum-currency-extension v0.0.0-20220531064934-c645585a5af8 h1:FHZBJgOWEKwo304OpfvoAraKoOP80sadie+4td5HCog=
 github.com/ProtoconNet/mitum-currency-extension v0.0.0-20220531064934-c645585a5af8/go.mod h1:XOncMhibX0KaJykiKa7XDeUBs2HzIxgiXt3ZB6f92po=
+github.com/ProtoconNet/mitum-currency-extension v0.0.0-20220616155020-831b7e01aaa0 h1:s7X6vQOWcaMBGx60dFIY2WveNf94PnW4y8xy1vTESng=
+github.com/ProtoconNet/mitum-currency-extension v0.0.0-20220616155020-831b7e01aaa0/go.mod h1:XOncMhibX0KaJykiKa7XDeUBs2HzIxgiXt3ZB6f92po=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
 github.com/alecthomas/kong v0.2.20 h1:j8icvBJGdkkvv4lZ8rWN9MF5Z9DWBEmQrjZ69Z8XFwM=
 github.com/alecthomas/kong v0.2.20/go.mod h1:ka3VZ8GZNPXv9Ov+j4YNLkI8mTuhXyr/0ktSlqIydQQ=

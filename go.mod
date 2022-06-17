@@ -3,7 +3,7 @@ module github.com/ProtoconNet/mitum-feefi
 go 1.17
 
 require (
-	github.com/ProtoconNet/mitum-currency-extension v0.0.0-20220531064934-c645585a5af8
+	github.com/ProtoconNet/mitum-currency-extension v0.0.0-20220616155020-831b7e01aaa0
 	github.com/alecthomas/kong v0.2.20
 	github.com/bluele/gcache v0.0.2
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
@@ -21,11 +21,6 @@ require (
 	golang.org/x/net v0.0.0-20211206223403-eba003a116a9
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
-)
-replace (
-	github.com/ProtoconNet/mitum-currency-extension => ../mitum-currency-extension
-	github.com/spikeekips/mitum-currency => ../../spikeekips/mitum-currency
-	github.com/spikeekips/mitum => ../../spikeekips/mitum
 )
 
 require (
