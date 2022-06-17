@@ -11,10 +11,10 @@ import (
 )
 
 var (
-	DepositFactType   = hint.Type("mitum-feefi-deposits-operation-fact")
+	DepositFactType   = hint.Type("mitum-feefi-pool-deposits-operation-fact")
 	DepositFactHint   = hint.NewHint(DepositFactType, "v0.0.1")
 	DepositFactHinter = DepositFact{BaseHinter: hint.NewBaseHinter(DepositFactHint)}
-	DepositType       = hint.Type("mitum-feefi-deposits-operation")
+	DepositType       = hint.Type("mitum-feefi-pool-deposits-operation")
 	DepositHint       = hint.NewHint(DepositType, "v0.0.1")
 	DepositHinter     = Deposit{BaseOperation: operationHinter(DepositHint)}
 )
