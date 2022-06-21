@@ -23,19 +23,6 @@ var (
 
 var UnlimitedMaxFeeAmount = currency.NewBig(-1)
 
-/*
-type Feeer interface {
-	isvalid.IsValider
-	hint.Hinter
-	Type() string
-	Bytes() []byte
-	Receiver() base.Address
-	Min() currency.Big
-	ExchangeMin() currency.Big
-	Fee(currency.Big) (currency.Big, error)
-}
-*/
-
 // TODO:remove receiver, amount and exchangeable
 type FeefiFeeer struct {
 	hint.BaseHinter

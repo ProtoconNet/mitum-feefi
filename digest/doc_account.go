@@ -95,24 +95,24 @@ func (doc BalanceDoc) MarshalBSON() ([]byte, error) {
 	return bsonenc.Marshal(m)
 }
 
-type ContractAccountStatusDoc struct {
+type ContractAccountDoc struct {
 	mongodbstorage.BaseDoc
 	st state.State
 }
 
-// NewContractAccountStatusDoc gets the State of contract account status
-func NewContractAccountStatusDoc(st state.State, enc encoder.Encoder) (ContractAccountStatusDoc, error) {
+// NewContractAccountDoc gets the State of contract account status
+func NewContractAccountDoc(st state.State, enc encoder.Encoder) (ContractAccountDoc, error) {
 	b, err := mongodbstorage.NewBaseDoc(nil, st, enc)
 	if err != nil {
-		return ContractAccountStatusDoc{}, err
+		return ContractAccountDoc{}, err
 	}
-	return ContractAccountStatusDoc{
+	return ContractAccountDoc{
 		BaseDoc: b,
 		st:      st,
 	}, nil
 }
 
-func (doc ContractAccountStatusDoc) MarshalBSON() ([]byte, error) {
+func (doc ContractAccountDoc) MarshalBSON() ([]byte, error) {
 	m, err := doc.BaseDoc.M()
 	if err != nil {
 		return nil, err

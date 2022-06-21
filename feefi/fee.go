@@ -224,12 +224,14 @@ func (opp *FeeOperationProcessor) Process(
 			if !ok {
 				return errors.Errorf("not FeefiFeeer, %q", feeer)
 			}
-			var CurrencyReceiverAmountState state.State
+			var currencyReceiverAmountState state.State
 			checkErr := true
 			// prepare fee receiver amount state
 			if err := checkExistsState(currency.StateKeyAccount(feeer.Receiver()), getState); err != nil {
 				return err
-			} else if CurrencyReceiverAmountState, _, err = getState(currency.StateKeyBalance(feeer.Receiver(), am.Currency())); err != nil {
+			} else if currencyReceiverAmountState, _, err = getState(
+				currency.StateKeyBalance(feeer.Receiver(), am.Currency()),
+			); err != nil {
 				return err
 			}
 			// check exchange currency in currency pool
@@ -244,24 +246,29 @@ func (opp *FeeOperationProcessor) Process(
 				checkErr = false
 				// update receiver amount state by adding exchange fee
 			}
-			exchangeCurrencyReceiverAmountState, _, err := getState(currency.StateKeyBalance(exchangeCurrencyFeeer.Receiver(), f.ExchangeCID()))
+			exchangeCurrencyReceiverAmountState, _, err := getState(
+				currency.StateKeyBalance(exchangeCurrencyFeeer.Receiver(), f.ExchangeCID()),
+			)
 			if err != nil {
 				checkErr = false
 			}
 			// check feefier exists
-			if err := checkExistsState(currency.StateKeyAccount(f.Feefier()), getState); err != nil {
+			if err = checkExistsState(currency.StateKeyAccount(f.Feefier()), getState); err != nil {
 				checkErr = false
-				// check whether feefier is contract account
-				// TODO:check whether contract account deactivated
-			} else if _, err := existsState(extensioncurrency.StateKeyContractAccount(f.Feefier()), "contract account", getState); err != nil {
+			} else if _, err = existsState(
+				extensioncurrency.StateKeyContractAccount(f.Feefier()), "contract account", getState,
+			); err != nil {
 				checkErr = false
-
 			}
-			feefierIncomeAmountState, _, err := getState(extensioncurrency.StateKeyBalance(f.Feefier(), feefierID, am.Currency(), StateKeyBalanceSuffix))
+			feefierIncomeAmountState, _, err := getState(
+				extensioncurrency.StateKeyBalance(f.Feefier(), feefierID, am.Currency(), StateKeyBalanceSuffix),
+			)
 			if err != nil {
 				checkErr = false
 			}
-			feefiOutlayAmountState, _, err := getState(extensioncurrency.StateKeyBalance(f.Feefier(), feefierID, f.ExchangeCID(), StateKeyBalanceSuffix))
+			feefiOutlayAmountState, _, err := getState(
+				extensioncurrency.StateKeyBalance(f.Feefier(), feefierID, f.ExchangeCID(), StateKeyBalanceSuffix),
+			)
 			if err != nil {
 				checkErr = false
 			}
@@ -275,7 +282,7 @@ func (opp *FeeOperationProcessor) Process(
 
 			if !checkErr {
 				if amountst, found := feefiReceiverBalance[f.ExchangeCID().String()]; !found {
-					ra := currency.NewAmountState(CurrencyReceiverAmountState, f.ExchangeCID())
+					ra := currency.NewAmountState(currencyReceiverAmountState, f.ExchangeCID())
 					nra := ra.Add(f.ExchangeMin())
 					feefiReceiverBalance[f.ExchangeCID().String()] = nra
 				} else {
@@ -286,7 +293,7 @@ func (opp *FeeOperationProcessor) Process(
 			}
 			sa := extensioncurrency.NewAmountState(feefiOutlayAmountState, f.ExchangeCID(), feefierID)
 			nsa := sa.Sub(f.ExchangeMin())
-			// update feefier amount state by substracting exchange fee
+			// update feefier amount state by subtracting exchange fee
 			if amountst, found := feefiFeefierBalance[am.Currency().String()+"-"+f.ExchangeCID().String()]; found {
 				sa := amountst.Sub(f.ExchangeMin())
 				feefiFeefierBalance[am.Currency().String()+"-"+f.ExchangeCID().String()] = sa

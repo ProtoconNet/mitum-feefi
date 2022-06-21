@@ -135,7 +135,7 @@ func LoadState(decoder func(interface{}) error, encs *encoder.Encoders) (state.S
 
 	rs, ok := hinter.(state.State)
 	if !ok {
-		return nil, errors.Errorf("not FeefiDesign: %T", hinter)
+		return nil, errors.Errorf("not state.State: %T", hinter)
 	}
 
 	return rs, nil

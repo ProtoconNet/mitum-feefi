@@ -28,7 +28,9 @@ type CurrencyRegisterProcessor struct {
 	de        state.State
 }
 
-func NewCurrencyRegisterProcessor(cp *CurrencyPool, pubs []key.Publickey, threshold base.Threshold) currency.GetNewProcessor {
+func NewCurrencyRegisterProcessor(
+	cp *CurrencyPool, pubs []key.Publickey, threshold base.Threshold,
+) currency.GetNewProcessor {
 	return func(op state.Processor) (state.Processor, error) {
 		i, ok := op.(extensioncurrency.CurrencyRegister)
 		if !ok {

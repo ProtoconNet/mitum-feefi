@@ -79,7 +79,7 @@ func HookLoadCurrencies(ctx context.Context) (context.Context, error) {
 	if err := config.LoadLogContextValue(ctx, &log); err != nil {
 		return ctx, err
 	}
-	fmt.Println("1111111111111111111111111111111")
+
 	log.Log().Debug().Msg("loading currencies from mitum database")
 
 	var st *mongodbstorage.Database
@@ -88,10 +88,9 @@ func HookLoadCurrencies(ctx context.Context) (context.Context, error) {
 	}
 
 	cp := feefi.NewCurrencyPool()
-	fmt.Println("222222222222222222222222222222")
 	if err := digest.LoadCurrenciesFromDatabase(st, base.NilHeight, func(sta state.State) (bool, error) {
 		if err := cp.Set(sta); err != nil {
-			fmt.Println("333333333333333333333333333333333")
+
 			return false, err
 		}
 		log.Log().Debug().Interface("currency", sta).Msg("currency loaded from mitum database")

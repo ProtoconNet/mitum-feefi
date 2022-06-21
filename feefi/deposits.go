@@ -29,7 +29,12 @@ type DepositFact struct {
 	amount currency.Amount
 }
 
-func NewDepositFact(token []byte, sender base.Address, pool base.Address, id extensioncurrency.ContractID, amount currency.Amount) DepositFact {
+func NewDepositFact(token []byte,
+	sender base.Address,
+	pool base.Address,
+	id extensioncurrency.ContractID,
+	amount currency.Amount,
+) DepositFact {
 	fact := DepositFact{
 		BaseHinter: hint.NewBaseHinter(DepositFactHint),
 		token:      token,

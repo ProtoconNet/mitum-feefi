@@ -25,18 +25,18 @@ var bulkWriteLimit = 500
 
 type BlockSession struct {
 	sync.RWMutex
-	block                       block.Block
-	st                          *Database
-	opsTreeNodes                map[string]operation.FixedTreeNode
-	operationModels             []mongo.WriteModel
-	accountModels               []mongo.WriteModel
-	balanceModels               []mongo.WriteModel
-	contractAccountStatusModels []mongo.WriteModel
-	feefiPoolModels             []mongo.WriteModel
-	feefiPoolUsersModels        []mongo.WriteModel
-	feefiDesignModels           []mongo.WriteModel
-	feefiBalanceModels          []mongo.WriteModel
-	statesValue                 *sync.Map
+	block                 block.Block
+	st                    *Database
+	opsTreeNodes          map[string]operation.FixedTreeNode
+	operationModels       []mongo.WriteModel
+	accountModels         []mongo.WriteModel
+	balanceModels         []mongo.WriteModel
+	contractAccountModels []mongo.WriteModel
+	feefiPoolModels       []mongo.WriteModel
+	feefiPoolUsersModels  []mongo.WriteModel
+	feefiDesignModels     []mongo.WriteModel
+	feefiBalanceModels    []mongo.WriteModel
+	statesValue           *sync.Map
 }
 
 func NewBlockSession(st *Database, blk block.Block) (*BlockSession, error) {
@@ -94,8 +94,8 @@ func (bs *BlockSession) Commit(ctx context.Context) error {
 		return err
 	}
 
-	if len(bs.contractAccountStatusModels) > 0 {
-		if err := bs.writeModels(ctx, defaultColNameExtension, bs.contractAccountStatusModels); err != nil {
+	if len(bs.contractAccountModels) > 0 {
+		if err := bs.writeModels(ctx, defaultColNameExtension, bs.contractAccountModels); err != nil {
 			return err
 		}
 	}
@@ -195,7 +195,7 @@ func (bs *BlockSession) prepareAccounts() error {
 	}
 	var accountModels []mongo.WriteModel
 	var balanceModels []mongo.WriteModel
-	var contractAccountStatusModels []mongo.WriteModel
+	var contractAccountModels []mongo.WriteModel
 	var feefiPoolModels []mongo.WriteModel
 	var feefiPoolUsersModels []mongo.WriteModel
 	var feefiDesignModels []mongo.WriteModel
@@ -216,11 +216,11 @@ func (bs *BlockSession) prepareAccounts() error {
 			}
 			balanceModels = append(balanceModels, j...)
 		case extensioncurrency.IsStateContractAccountKey(st.Key()):
-			j, err := bs.handleContractAccountStatusState(st)
+			j, err := bs.handleContractAccountState(st)
 			if err != nil {
 				return err
 			}
-			contractAccountStatusModels = append(contractAccountStatusModels, j...)
+			contractAccountModels = append(contractAccountModels, j...)
 		case feefi.IsStatePoolKey(st.Key()):
 			j, err := bs.handleFeefiPoolState(st)
 			if err != nil {
@@ -248,8 +248,8 @@ func (bs *BlockSession) prepareAccounts() error {
 	bs.accountModels = accountModels
 	bs.balanceModels = balanceModels
 
-	if len(contractAccountStatusModels) > 0 {
-		bs.contractAccountStatusModels = contractAccountStatusModels
+	if len(contractAccountModels) > 0 {
+		bs.contractAccountModels = contractAccountModels
 	}
 	if len(feefiPoolModels) > 0 {
 		bs.feefiPoolModels = feefiPoolModels
@@ -285,8 +285,8 @@ func (bs *BlockSession) handleBalanceState(st state.State) ([]mongo.WriteModel, 
 	return []mongo.WriteModel{mongo.NewInsertOneModel().SetDocument(doc)}, nil
 }
 
-func (bs *BlockSession) handleContractAccountStatusState(st state.State) ([]mongo.WriteModel, error) {
-	doc, err := NewContractAccountStatusDoc(st, bs.st.database.Encoder())
+func (bs *BlockSession) handleContractAccountState(st state.State) ([]mongo.WriteModel, error) {
+	doc, err := NewContractAccountDoc(st, bs.st.database.Encoder())
 	if err != nil {
 		return nil, err
 	}
@@ -369,7 +369,7 @@ func (bs *BlockSession) close() error {
 	bs.operationModels = nil
 	bs.accountModels = nil
 	bs.balanceModels = nil
-	bs.contractAccountStatusModels = nil
+	bs.contractAccountModels = nil
 	bs.feefiPoolModels = nil
 	bs.feefiDesignModels = nil
 	bs.feefiBalanceModels = nil

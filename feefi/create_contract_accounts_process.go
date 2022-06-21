@@ -114,6 +114,9 @@ func (opp *CreateContractAccountsItemProcessor) Process(
 ) ([]state.State, error) {
 	// new target account from keys and remove keys
 	nac, err := currency.NewAccountFromKeys(opp.item.Keys())
+	if err != nil {
+		return nil, err
+	}
 	ks := NewContractAccountKeys()
 	ncac, err := nac.SetKeys(ks)
 	if err != nil {
@@ -268,7 +271,9 @@ func (opp *CreateContractAccountsProcessor) Close() error {
 	return nil
 }
 
-func (opp *CreateContractAccountsProcessor) calculateItemsFee(getState func(key string) (state.State, bool, error)) (map[currency.CurrencyID][2]currency.Big, error) {
+func (opp *CreateContractAccountsProcessor) calculateItemsFee(
+	getState func(key string) (state.State, bool, error),
+) (map[currency.CurrencyID][2]currency.Big, error) {
 	fact := opp.Fact().(extensioncurrency.CreateContractAccountsFact)
 
 	items := make([]currency.AmountsItem, len(fact.Items()))
@@ -278,73 +283,3 @@ func (opp *CreateContractAccountsProcessor) calculateItemsFee(getState func(key 
 
 	return CalculateItemsFee(opp.cp, items, getState)
 }
-
-/*
-func CalculateItemsFee(cp *extensioncurrency.CurrencyPool, items []AmountsItem) (map[currency.CurrencyID][2]currency.Big, error) {
-	required := map[currency.CurrencyID][2]currency.Big{}
-
-	for i := range items {
-		it := items[i]
-
-		for j := range it.Amounts() {
-			am := it.Amounts()[j]
-
-			rq := [2]currency.Big{currency.ZeroBig, currency.ZeroBig}
-			if k, found := required[am.Currency()]; found {
-				rq = k
-			}
-
-			if cp == nil {
-				required[am.Currency()] = [2]currency.Big{rq[0].Add(am.Big()), rq[1]}
-
-				continue
-			}
-
-			feeer, found := cp.Feeer(am.Currency())
-			if !found {
-				return nil, errors.Errorf("unknown currency id found, %q", am.Currency())
-			}
-			switch k, err := feeer.Fee(am.Big()); {
-			case err != nil:
-				return nil, err
-			case !k.OverZero():
-				required[am.Currency()] = [2]currency.Big{rq[0].Add(am.Big()), rq[1]}
-			default:
-				required[am.Currency()] = [2]currency.Big{rq[0].Add(am.Big()).Add(k), rq[1].Add(k)}
-			}
-		}
-	}
-
-	return required, nil
-}
-
-func CheckEnoughBalance(
-	holder base.Address,
-	required map[currency.CurrencyID][2]currency.Big,
-	getState func(key string) (state.State, bool, error),
-) (map[currency.CurrencyID]AmountState, error) {
-	sb := map[currency.CurrencyID]AmountState{}
-
-	for cid := range required {
-		rq := required[cid]
-
-		st, err := existsState(currency.StateKeyBalance(holder, cid), "currency of holder", getState)
-		if err != nil {
-			return nil, err
-		}
-
-		am, err := currency.StateBalanceValue(st)
-		if err != nil {
-			return nil, operation.NewBaseReasonError("insufficient balance of sender: %w", err)
-		}
-
-		if am.Big().Compare(rq[0]) < 0 {
-			return nil, operation.NewBaseReasonError(
-				"insufficient balance of sender, %s; %d !> %d", holder.String(), am.Big(), rq[0])
-		}
-		sb[cid] = currency.NewAmountState(st, cid)
-	}
-
-	return sb, nil
-}
-*/

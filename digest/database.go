@@ -469,12 +469,12 @@ func (st *Database) Account(a base.Address) (AccountValue, bool /* exists */, er
 			SetPreviousHeight(previousHeight)
 	}
 
-	// load contractaccountstatus
-	switch owner, isActive, lastHeight, previousHeight, err := st.ContractAccountStatus(a); {
+	// load contractaccounts
+	switch owner, isActive, lastHeight, previousHeight, err := st.ContractAccount(a); {
 	case err != nil:
 		return rs, false, err
 	default:
-		rs = rs.SetContractAccountStatus(owner, isActive).
+		rs = rs.SetContractAccount(owner, isActive).
 			SetHeight(lastHeight).
 			SetPreviousHeight(previousHeight)
 	}
@@ -920,8 +920,8 @@ func parseOffsetHeight(s string) (base.Height, error) {
 	}
 }
 
-// ContractAccountStatus return contract account owner by address
-func (st *Database) ContractAccountStatus(a base.Address) (base.Address, bool, base.Height, base.Height, error) {
+// ContractAccount return contract account owner by address
+func (st *Database) ContractAccount(a base.Address) (base.Address, bool, base.Height, base.Height, error) {
 	var lastHeight, previousHeight = base.NilHeight, base.NilHeight
 	filter := util.NewBSONFilter("address", a.String())
 	q := filter.D()

@@ -7,7 +7,16 @@ import (
 	"github.com/spikeekips/mitum/util/hint"
 )
 
-func (fa *FeefiFeeer) unpack(enc encoder.Encoder, ht hint.Hint, brc base.AddressDecoder, am currency.Big, ex bool, sec string, bfr base.AddressDecoder, em currency.Big) error {
+func (fa *FeefiFeeer) unpack(
+	enc encoder.Encoder,
+	ht hint.Hint,
+	brc base.AddressDecoder,
+	am currency.Big,
+	ex bool,
+	sec string,
+	bfr base.AddressDecoder,
+	em currency.Big,
+) error {
 	fa.BaseHinter = hint.NewBaseHinter(ht)
 
 	ra, err := brc.Encode(enc)

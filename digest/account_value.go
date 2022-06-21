@@ -88,7 +88,7 @@ func (va AccountValue) SetBalance(balance []currency.Amount) AccountValue {
 	return va
 }
 
-func (va AccountValue) SetContractAccountStatus(owner base.Address, active bool) AccountValue {
+func (va AccountValue) SetContractAccount(owner base.Address, active bool) AccountValue {
 	va.owner = owner
 	va.isActiveContractAccount = active
 

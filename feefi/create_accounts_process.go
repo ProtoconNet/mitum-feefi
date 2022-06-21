@@ -221,7 +221,9 @@ func (opp *CreateAccountsProcessor) Close() error {
 	return nil
 }
 
-func (opp *CreateAccountsProcessor) calculateItemsFee(getState func(key string) (state.State, bool, error)) (map[currency.CurrencyID][2]currency.Big, error) {
+func (opp *CreateAccountsProcessor) calculateItemsFee(
+	getState func(key string) (state.State, bool, error),
+) (map[currency.CurrencyID][2]currency.Big, error) {
 	fact := opp.Fact().(currency.CreateAccountsFact)
 
 	items := make([]currency.AmountsItem, len(fact.Items()))
@@ -232,31 +234,27 @@ func (opp *CreateAccountsProcessor) calculateItemsFee(getState func(key string) 
 	return CalculateItemsFee(opp.cp, items, getState)
 }
 
-func CalculateItemsFee(cp *CurrencyPool, items []currency.AmountsItem, getState func(key string) (state.State, bool, error)) (map[currency.CurrencyID][2]currency.Big, error) {
+func CalculateItemsFee(
+	cp *CurrencyPool, items []currency.AmountsItem, getState func(key string) (state.State, bool, error),
+) (map[currency.CurrencyID][2]currency.Big, error) {
 	required := map[currency.CurrencyID][2]currency.Big{}
-
 	for i := range items {
 		it := items[i]
-
 		for j := range it.Amounts() {
 			am := it.Amounts()[j]
-
 			rq := [2]currency.Big{currency.ZeroBig, currency.ZeroBig}
 			if k, found := required[am.Currency()]; found {
 				rq = k
 			}
-
 			if cp == nil {
 				required[am.Currency()] = [2]currency.Big{rq[0].Add(am.Big()), rq[1]}
 
 				continue
 			}
-
 			f, found := cp.Feeer(am.Currency())
 			if !found {
 				return nil, errors.Errorf("unknown currency id found, %q", am.Currency())
 			}
-			// 수정
 			feeer, ok := f.(FeefiFeeer)
 			id := extensioncurrency.ContractID(am.Currency().String())
 			var k currency.Big
@@ -270,13 +268,17 @@ func CalculateItemsFee(cp *CurrencyPool, items []currency.AmountsItem, getState 
 					return nil, err
 				}
 				if design.Policy().Fee().Currency() != am.Currency() {
-					return nil, errors.Errorf("feefi design fee currency id, %q not matched with %q", design.Policy().Fee().Currency(), am.Currency())
+					return nil, errors.Errorf(
+						"feefi design fee currency id, %q not matched with %q",
+						design.Policy().Fee().Currency(),
+						am.Currency(),
+					)
 				}
 				k = design.Policy().Fee().Big()
 			} else {
 				var err error
-				switch k, err = f.Fee(am.Big()); {
-				case err != nil:
+				k, err = f.Fee(am.Big())
+				if err != nil {
 					return nil, err
 				}
 			}

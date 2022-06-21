@@ -59,7 +59,7 @@ func NewDepositsProcessor(cp *CurrencyPool) currency.GetNewProcessor {
 
 func (opp *DepositsProcessor) PreProcess(
 	getState func(key string) (state.State, bool, error),
-	setState func(valuehash.Hash, ...state.State) error,
+	_ func(valuehash.Hash, ...state.State) error,
 ) (state.Processor, error) {
 	fact := opp.Fact().(DepositFact)
 	// check existence of sender account state
@@ -160,7 +160,7 @@ func (opp *DepositsProcessor) PreProcess(
 }
 
 func (opp *DepositsProcessor) Process( // nolint:dupl
-	getState func(key string) (state.State, bool, error),
+	_ func(key string) (state.State, bool, error),
 	setState func(valuehash.Hash, ...state.State) error,
 ) error {
 	fact := opp.Fact().(DepositFact)
@@ -186,19 +186,20 @@ func (opp *DepositsProcessor) Close() error {
 	return nil
 }
 
-func (opp *DepositsProcessor) calculateFee(getState func(key string) (state.State, bool, error)) ([2]currency.Big, error) {
+func (opp *DepositsProcessor) calculateFee(
+	getState func(key string) (state.State, bool, error),
+) ([2]currency.Big, error) {
 	fact := opp.Fact().(DepositFact)
 
 	return CalculateDepositFee(opp.cp, fact, getState)
 }
 
-func CalculateDepositFee(cp *CurrencyPool, fact DepositFact, getState func(key string) (state.State, bool, error)) ([2]currency.Big, error) {
+func CalculateDepositFee(
+	cp *CurrencyPool, fact DepositFact, getState func(key string) (state.State, bool, error),
+) ([2]currency.Big, error) {
 	required := [2]currency.Big{}
-
 	am := fact.amount
-
 	rq := [2]currency.Big{currency.ZeroBig, currency.ZeroBig}
-
 	if cp == nil {
 		required = [2]currency.Big{rq[0].Add(am.Big()), rq[1]}
 		return required, nil
@@ -221,13 +222,17 @@ func CalculateDepositFee(cp *CurrencyPool, fact DepositFact, getState func(key s
 			return [2]currency.Big{}, err
 		}
 		if design.Policy().Fee().Currency() != am.Currency() {
-			return [2]currency.Big{}, errors.Errorf("feefi design fee currency id, %q not matched with %q", design.Policy().Fee().Currency(), am.Currency())
+			return [2]currency.Big{}, errors.Errorf(
+				"feefi design fee currency id, %q not matched with %q",
+				design.Policy().Fee().Currency(),
+				am.Currency(),
+			)
 		}
 		k = design.Policy().Fee().Big()
 	} else {
 		var err error
-		switch k, err = v.Fee(am.Big()); {
-		case err != nil:
+		k, err = v.Fee(am.Big())
+		if err != nil {
 			return [2]currency.Big{}, err
 		}
 	}
@@ -253,8 +258,7 @@ func UpdatePoolUserFromDeposit(pl Pool, feefier base.Address, depositer base.Add
 	if err != nil {
 		return Pool{}, err
 	}
-	var id extensioncurrency.ContractID
-	id = extensioncurrency.ContractID(pool.prevIncomeAmount.Currency().String())
+	id := extensioncurrency.ContractID(pool.prevIncomeAmount.Currency().String())
 	// add deposit amount
 	if userBalance, found := pool.users[depositer.String()]; !found {
 		pool.users[depositer.String()] = NewPoolUserBalance(
