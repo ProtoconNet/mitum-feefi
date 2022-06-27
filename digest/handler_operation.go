@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	extensioncurrency "github.com/ProtoconNet/mitum-currency-extension/currency"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	"github.com/spikeekips/mitum-currency/currency"
@@ -250,6 +251,28 @@ func (hd *Handlers) buildOperationHal(va OperationValue) (Hal, error) {
 	if va.InState() {
 		if t, ok := va.Operation().(currency.CreateAccounts); ok {
 			items := t.Fact().(currency.CreateAccountsFact).Items()
+			for i := range items {
+				a, err := items[i].Address()
+				if err != nil {
+					return nil, err
+				}
+				address := a.String()
+
+				h, err := hd.combineURL(HandlerPathAccount, "address", address)
+				if err != nil {
+					return nil, err
+				}
+				keyHash := items[i].Keys().Hash().String()
+				hal = hal.AddLink(
+					fmt.Sprintf("new_account:%s", keyHash),
+					NewHalLink(h, nil).
+						SetProperty("key", keyHash).
+						SetProperty("address", address),
+				)
+			}
+		}
+		if t, ok := va.Operation().(extensioncurrency.CreateContractAccounts); ok {
+			items := t.Fact().(extensioncurrency.CreateContractAccountsFact).Items()
 			for i := range items {
 				a, err := items[i].Address()
 				if err != nil {
