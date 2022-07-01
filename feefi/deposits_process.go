@@ -429,7 +429,6 @@ func CalculateRewardAndHold(pl Pool, feefier base.Address, getState func(key str
 			max := pool.users[bigUser]
 			err = max.AddIncome(incomeRemainder)
 			if err != nil {
-				fmt.Println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
 				return Pool{}, extensioncurrency.AmountValue{}, extensioncurrency.AmountValue{}, err
 			}
 			pool.users[bigUser] = max

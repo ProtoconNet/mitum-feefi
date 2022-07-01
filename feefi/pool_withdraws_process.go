@@ -213,7 +213,6 @@ func (opp *PoolWithdrawsProcessor) Process( // nolint:dupl
 		amv := opp.pb[k].Sub(rq[0])
 		sts = append(sts, opp.wb[k].Add(rq[0].Sub(rq[1])), amv.AddFee(rq[1]), opp.fs)
 	}
-	fmt.Println("dddddddddddddddddddddddddddd")
 	return setState(fact.Hash(), sts...)
 }
 

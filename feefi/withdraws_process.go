@@ -14,7 +14,7 @@ import (
 
 var withdrawsItemProcessorPool = sync.Pool{
 	New: func() interface{} {
-		return new(extensioncurrency.WithdrawsItemProcessor)
+		return new(WithdrawsItemProcessor)
 	},
 }
 
