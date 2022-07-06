@@ -43,7 +43,7 @@ func NewPoolRegisterProcessor(cp *CurrencyPool) currency.GetNewProcessor {
 	return func(op state.Processor) (state.Processor, error) {
 		pr, ok := op.(PoolRegister)
 		if !ok {
-			return nil, errors.Errorf("not ConfigContractAccount, %T", op)
+			return nil, errors.Errorf("not PoolRegister, %T", op)
 		}
 
 		opp := poolRegisterProcessorPool.Get().(*PoolRegisterProcessor)
@@ -70,10 +70,19 @@ func (opp *PoolRegisterProcessor) PreProcess(
 	_ func(valuehash.Hash, ...state.State) error,
 ) (state.Processor, error) {
 	fact := opp.Fact().(PoolRegisterFact)
-
+	if opp.cp != nil {
+		_, found := opp.cp.Policy(fact.incomeCID)
+		if !found {
+			return nil, operation.NewBaseReasonError("income currency not registered, %q", fact.incomeCID)
+		}
+		_, found = opp.cp.Policy(fact.outlayCID)
+		if !found {
+			return nil, operation.NewBaseReasonError("outlay currency not registered, %q", fact.outlayCID)
+		}
+	}
 	// check existence of target account state
 	// keep target account state
-	st, err := existsState(currency.StateKeyAccount(fact.target), "target account", getState)
+	_, err := existsState(currency.StateKeyAccount(fact.target), "target account", getState)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +91,7 @@ func (opp *PoolRegisterProcessor) PreProcess(
 	// check sender matched with contract account owner
 	// keep contract account status state
 	// keep contract account status value
-	st, err = existsState(extensioncurrency.StateKeyContractAccount(fact.target), "contract account status", getState)
+	st, err := existsState(extensioncurrency.StateKeyContractAccount(fact.target), "contract account status", getState)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +100,11 @@ func (opp *PoolRegisterProcessor) PreProcess(
 		return nil, err
 	}
 	if !ca.Owner().Equal(fact.sender) {
-		return nil, operation.NewBaseReasonError("contract account owner, %q is not matched with %q", ca.Owner(), fact.sender)
+		return nil, operation.NewBaseReasonError(
+			"contract account owner, %q is not matched with %q",
+			ca.Owner(),
+			fact.sender,
+		)
 	}
 
 	opp.cs = st
@@ -129,7 +142,12 @@ func (opp *PoolRegisterProcessor) PreProcess(
 
 	// check target don't have incoming amount state
 	// keep incoming amount state of target
-	st, err = notExistsState(extensioncurrency.StateKeyBalance(fact.target, id, fact.IncomeCID(), StateKeyBalanceSuffix), "incoming balance of target", getState)
+	st, err = notExistsState(extensioncurrency.StateKeyBalance(
+		fact.target,
+		id,
+		fact.IncomeCID(),
+		StateKeyBalanceSuffix,
+	), "incoming balance of target", getState)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +155,14 @@ func (opp *PoolRegisterProcessor) PreProcess(
 
 	// check target don't have outgoing amount state
 	// keep outgoing amount state of target
-	st, err = notExistsState(extensioncurrency.StateKeyBalance(fact.target, id, fact.OutlayCID(), StateKeyBalanceSuffix), "outgoing balance of target", getState)
+	st, err = notExistsState(extensioncurrency.StateKeyBalance(
+		fact.target,
+		id,
+		fact.OutlayCID(),
+		StateKeyBalanceSuffix),
+		"outgoing balance of target",
+		getState,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -189,11 +214,17 @@ func (opp *PoolRegisterProcessor) Process(
 	}
 	id := extensioncurrency.ContractID(fact.incomeCID.String())
 
-	ibst, err := extensioncurrency.SetStateBalanceValue(opp.ib, extensioncurrency.NewAmountValuefromAmount(currency.NewZeroAmount(fact.incomeCID), id))
+	ibst, err := extensioncurrency.SetStateBalanceValue(opp.ib, extensioncurrency.NewAmountValuefromAmount(
+		currency.NewZeroAmount(fact.incomeCID),
+		id,
+	))
 	if err != nil {
 		return operation.NewBaseReasonErrorFromError(err)
 	}
-	obst, err := extensioncurrency.SetStateBalanceValue(opp.ob, extensioncurrency.NewAmountValuefromAmount(currency.NewZeroAmount(fact.outlayCID), id))
+	obst, err := extensioncurrency.SetStateBalanceValue(opp.ob, extensioncurrency.NewAmountValuefromAmount(
+		currency.NewZeroAmount(fact.outlayCID),
+		id,
+	))
 	if err != nil {
 		return operation.NewBaseReasonErrorFromError(err)
 	}
