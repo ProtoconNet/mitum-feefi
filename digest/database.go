@@ -959,11 +959,13 @@ func (st *Database) ContractAccount(a base.Address) (base.Address, bool, base.He
 }
 
 // FeefiPool returns FeefiPoolValue.
-func (st *Database) FeefiPool(fid string) (FeefiPoolValue, bool /* exists */, error) {
+func (st *Database) FeefiPool(fid string, address base.Address) (FeefiPoolValue, bool /* exists */, error) {
 	var rs FeefiPoolValue
+	filter := util.NewBSONFilter("feefipoolid", fid)
+	q := filter.Add("address", bson.M{"$in": []string{address.String()}}).D()
 	if err := st.database.Client().GetByFilter(
 		defaultColNameFeefiPool,
-		util.NewBSONFilter("feefipoolid", fid).D(),
+		q,
 		func(res *mongo.SingleResult) error {
 			i, err := LoadFeefiPoolValue(res.Decode, st.database.Encoders())
 			if err != nil {
@@ -1099,7 +1101,7 @@ func (st *Database) feefiDesign(fid string) (feefi.PoolDesign, base.Height, base
 	return i, lastHeight, previousHeight, nil
 }
 
-func (st *Database) FeefiByAddress(
+func (st *Database) FeefiUserByAddress(
 	address base.Address,
 	fid string,
 ) (feefi.PoolUserBalance, error) {

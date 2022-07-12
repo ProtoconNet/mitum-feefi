@@ -49,6 +49,7 @@ func (doc FeefiPoolValueDoc) MarshalBSON() ([]byte, error) {
 		return nil, err
 	}
 
+	m["address"] = doc.va.Address()
 	m["feefipoolid"] = doc.feefipoolid
 	m["height"] = doc.height
 

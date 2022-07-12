@@ -9,6 +9,7 @@ import (
 	"github.com/ProtoconNet/mitum-feefi/feefi"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
+	"github.com/spikeekips/mitum/base"
 	"github.com/spikeekips/mitum/util"
 )
 
@@ -16,6 +17,18 @@ func (hd *Handlers) handleFeefi(w http.ResponseWriter, r *http.Request) {
 	cachekey := CacheKeyPath(r)
 	if err := LoadFromCache(hd.cache, cachekey, w); err == nil {
 		return
+	}
+
+	var address base.Address
+	if a, err := base.DecodeAddressFromString(strings.TrimSpace(mux.Vars(r)["address"]), hd.enc); err != nil {
+		HTTP2ProblemWithError(w, err, http.StatusBadRequest)
+
+		return
+	} else if err := a.IsValid(nil); err != nil {
+		HTTP2ProblemWithError(w, err, http.StatusBadRequest)
+		return
+	} else {
+		address = a
 	}
 
 	var fid string
@@ -35,7 +48,7 @@ func (hd *Handlers) handleFeefi(w http.ResponseWriter, r *http.Request) {
 	fid = s
 
 	if v, err, shared := hd.rg.Do(cachekey, func() (interface{}, error) {
-		return hd.handleFeefiInGroup(fid)
+		return hd.handleFeefiInGroup(fid, address)
 	}); err != nil {
 		HTTP2HandleError(w, err)
 	} else {
@@ -46,8 +59,11 @@ func (hd *Handlers) handleFeefi(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (hd *Handlers) handleFeefiInGroup(fid string) (interface{}, error) {
-	switch va, found, err := hd.database.FeefiPool(fid); {
+func (hd *Handlers) handleFeefiInGroup(
+	fid string,
+	address base.Address,
+) (interface{}, error) {
+	switch va, found, err := hd.database.FeefiPool(fid, address); {
 	case err != nil:
 		return nil, err
 	case !found:
@@ -62,15 +78,85 @@ func (hd *Handlers) handleFeefiInGroup(fid string) (interface{}, error) {
 	}
 }
 
-func (hd *Handlers) buildFeefiPoolHal(va FeefiPoolValue) (Hal, error) {
-	hinted := extensioncurrency.ContractID(va.PrevIncomeBalance().Currency().String()).String()
-	h, err := hd.combineURL(HandlerPathFeefi, "feefipoolid", hinted)
+func (hd *Handlers) handleFeefiUser(w http.ResponseWriter, r *http.Request) {
+	var address base.Address
+	if a, err := base.DecodeAddressFromString(strings.TrimSpace(mux.Vars(r)["address"]), hd.enc); err != nil {
+		HTTP2ProblemWithError(w, err, http.StatusBadRequest)
+
+		return
+	} else if err := a.IsValid(nil); err != nil {
+		HTTP2ProblemWithError(w, err, http.StatusBadRequest)
+		return
+	} else {
+		address = a
+	}
+
+	var fid string
+	s, found := mux.Vars(r)["feefipoolid"]
+	if !found {
+		HTTP2ProblemWithError(w, errors.Errorf("empty feefipool id"), http.StatusNotFound)
+
+		return
+	}
+
+	s = strings.TrimSpace(s)
+	if len(s) < 1 {
+		HTTP2ProblemWithError(w, errors.Errorf("empty feefipool id"), http.StatusBadRequest)
+
+		return
+	}
+	fid = s
+
+	cachekey := CacheKeyPath(r)
+	if err := LoadFromCache(hd.cache, cachekey, w); err == nil {
+		return
+	}
+
+	if v, err, shared := hd.rg.Do(cachekey, func() (interface{}, error) {
+		i, err := hd.handleFeefiUserInGroup(address, fid)
+
+		return i, err
+	}); err != nil {
+		HTTP2HandleError(w, err)
+	} else {
+		b := v.([]byte)
+
+		HTTP2WriteHalBytes(hd.enc, w, b, http.StatusOK)
+
+		if !shared {
+			expire := hd.expireNotFilled
+			HTTP2WriteCache(w, cachekey, expire)
+		}
+	}
+}
+
+func (hd *Handlers) handleFeefiUserInGroup(
+	address base.Address,
+	fid string,
+) ([]byte, error) {
+	v, err := hd.database.FeefiUserByAddress(address, fid)
 	if err != nil {
 		return nil, err
 	}
 
-	var hal Hal
-	hal = NewBaseHal(va, NewHalLink(h, nil))
+	i, err := hd.buildFeefiPoolUserBalanceHal(v)
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := hd.enc.Marshal(i)
+	return b, err
+}
+
+func (hd *Handlers) buildFeefiPoolHal(va FeefiPoolValue) (Hal, error) {
+	hinted := extensioncurrency.ContractID(va.PrevIncomeBalance().Currency().String()).String()
+	address := va.Address()
+	h, err := hd.combineURL(HandlerPathFeefi, "feefipoolid", hinted, "address", address)
+	if err != nil {
+		return nil, err
+	}
+
+	hal := NewBaseHal(va, NewHalLink(h, nil))
 	/*
 		hal = hal.AddLink("currency:{currencyid}", NewHalLink(HandlerPathCurrency, nil).SetTemplated())
 		h, err = hd.combineURL(HandlerPathAccountOperations, "address", hinted)
@@ -107,8 +193,7 @@ func (hd *Handlers) buildFeefiPoolUserBalanceHal(va feefi.PoolUserBalance) (Hal,
 		return nil, err
 	}
 
-	var hal Hal
-	hal = NewBaseHal(va, NewHalLink(h, nil))
+	hal := NewBaseHal(va, NewHalLink(h, nil))
 	/*
 		hal = hal.AddLink("currency:{currencyid}", NewHalLink(HandlerPathCurrency, nil).SetTemplated())
 		h, err = hd.combineURL(HandlerPathAccountOperations, "address", hinted)

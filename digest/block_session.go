@@ -165,7 +165,6 @@ func (bs *BlockSession) prepareOperations() error {
 
 	for i := range bs.block.Operations() {
 		op := bs.block.Operations()[i]
-
 		found, inState, reason := node(op.Fact().Hash())
 		if !found {
 			return util.NotFoundError.Errorf("operation, %s not found in operations tree", op.Fact().Hash().String())

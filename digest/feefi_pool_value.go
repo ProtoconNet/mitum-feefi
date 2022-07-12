@@ -34,7 +34,8 @@ func NewFeefiPoolValue(st state.State) (FeefiPoolValue, error) {
 	default:
 		fp = a
 	}
-	address := st.Key()[:len(st.Key())-len(feefi.StateKeyPoolSuffix)-len(fp.IncomeBalance().Currency())-1]
+
+	address := st.Key()[:len(st.Key())-len(feefi.StateKeyPoolSuffix)-len(fp.IncomeBalance().Currency())-1-len(currency.AddressType.String())]
 	return FeefiPoolValue{
 		prevIncomeBalance: fp.IncomeBalance(),
 		prevOutlayBalance: fp.OutlayBalance(),

@@ -39,11 +39,11 @@ var (
 	HandlerPathOperationsByHeight         = `/block/{height:[0-9]+}/operations`
 	HandlerPathManifestByHeight           = `/block/{height:[0-9]+}/manifest`
 	HandlerPathManifestByHash             = `/block/{hash:(?i)[0-9a-z][0-9a-z]+}/manifest`
-	HandlerPathAccount                    = `/account/{address:(?i)` + base.REStringAddressString + `}`                        // revive:disable-line:line-length-limit
-	HandlerPathAccountOperations          = `/account/{address:(?i)` + base.REStringAddressString + `}/operations`             // revive:disable-line:line-length-limit
-	HandlerPathAccountFeefi               = `/account/{address:(?i)` + base.REStringAddressString + `}/feefi/{feefipoolid:.*}` // revive:disable-line:line-length-limit
+	HandlerPathAccount                    = `/account/{address:(?i)` + base.REStringAddressString + `}`            // revive:disable-line:line-length-limit
+	HandlerPathAccountOperations          = `/account/{address:(?i)` + base.REStringAddressString + `}/operations` // revive:disable-line:line-length-limit
 	HandlerPathAccounts                   = `/accounts`
-	HandlerPathFeefi                      = `/feefi/{feefipoolid:.*}`
+	HandlerPathFeefi                      = `/feefi/{feefipoolid:.*}/pool/{address:(?i)` + base.REStringAddressString + `}` // revive:disable-line:line-length-limit
+	HandlerPathFeefiUser                  = `/feefi/{feefipoolid:.*}/user/{address:(?i)` + base.REStringAddressString + `}` // revive:disable-line:line-length-limit
 	HandlerPathOperationBuildFactTemplate = `/builder/operation/fact/template/{fact:[\w][\w\-]*}`
 	HandlerPathOperationBuildFact         = `/builder/operation/fact`
 	HandlerPathOperationBuildSign         = `/builder/operation/sign`
@@ -65,9 +65,9 @@ var RateLimitHandlerMap = map[string]string{
 	"block-manifest-by-hash":          HandlerPathManifestByHash,
 	"account":                         HandlerPathAccount,
 	"account-operations":              HandlerPathAccountOperations,
-	"account-feefi-pool-balance":      HandlerPathAccountFeefi,
 	"accounts":                        HandlerPathAccounts,
 	"feefi":                           HandlerPathFeefi,
+	"feefi-pool-user":                 HandlerPathFeefiUser,
 	"builder-operation-fact-template": HandlerPathOperationBuildFactTemplate,
 	"builder-operation-fact":          HandlerPathOperationBuildFact,
 	"builder-operation-sign":          HandlerPathOperationBuildSign,
@@ -193,7 +193,7 @@ func (hd *Handlers) setHandlers() {
 		Methods(http.MethodOptions, "GET")
 	hd.setHandler(HandlerPathAccountOperations, hd.handleAccountOperations, true).
 		Methods(http.MethodOptions, "GET")
-	hd.setHandler(HandlerPathAccountFeefi, hd.handleAccountFeefi, true).
+	hd.setHandler(HandlerPathFeefiUser, hd.handleFeefiUser, true).
 		Methods(http.MethodOptions, "GET")
 	hd.setHandler(HandlerPathAccounts, hd.handleAccounts, true).
 		Methods(http.MethodOptions, "GET")
