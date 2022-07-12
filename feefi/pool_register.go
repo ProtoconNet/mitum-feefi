@@ -80,6 +80,9 @@ func (fact PoolRegisterFact) IsValid(b []byte) error {
 	if err := currency.IsValidOperationFact(fact, b); err != nil {
 		return err
 	}
+	if fact.initialFee.Currency() != fact.incomeCID {
+		return isvalid.InvalidError.Errorf("initialFee currency is different with incomeCID")
+	}
 
 	return isvalid.Check(nil, false,
 		fact.sender,
